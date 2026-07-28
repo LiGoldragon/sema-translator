@@ -102,6 +102,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "content-identity"
+version = "0.4.0"
+source = "git+https://github.com/LiGoldragon/content-identity.git?rev=f1f9c6efc828acaefd0f751550cd40389d312bf5#f1f9c6efc828acaefd0f751550cd40389d312bf5"
+dependencies = [
+ "blake3",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
 name = "cpufeatures"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -248,7 +258,7 @@ name = "name-table"
 version = "0.1.0"
 source = "git+https://github.com/LiGoldragon/name-table.git?rev=196610e2907687dcb8dbd0d2dfaafe4aefd9fa27#196610e2907687dcb8dbd0d2dfaafe4aefd9fa27"
 dependencies = [
- "content-identity",
+ "content-identity 0.3.0",
  "rkyv",
  "thiserror",
 ]
@@ -256,9 +266,9 @@ dependencies = [
 [[package]]
 name = "name-table"
 version = "0.3.0"
-source = "git+https://github.com/LiGoldragon/name-table.git?rev=c3a4b472caa6d225bb9eb09b1893942cdb5fec9e#c3a4b472caa6d225bb9eb09b1893942cdb5fec9e"
+source = "git+https://github.com/LiGoldragon/name-table.git?rev=1f558eac44bd03034e51ad98e3a65ec16d8b8411#1f558eac44bd03034e51ad98e3a65ec16d8b8411"
 dependencies = [
- "content-identity",
+ "content-identity 0.4.0",
  "rkyv",
  "thiserror",
 ]
@@ -295,7 +305,7 @@ name = "protos"
 version = "0.2.0"
 source = "git+https://github.com/LiGoldragon/protos.git?rev=0b4b17471053e8b40472225b5992cd3252e76d85#0b4b17471053e8b40472225b5992cd3252e76d85"
 dependencies = [
- "content-identity",
+ "content-identity 0.3.0",
  "name-table 0.1.0",
  "signal-frame 0.4.0",
  "structural-codec",
@@ -350,7 +360,7 @@ name = "raw-discovery"
 version = "0.2.0"
 source = "git+https://github.com/LiGoldragon/raw-discovery.git?rev=2ac78f621980fa02daa3b31e90cc5c73570eed6e#2ac78f621980fa02daa3b31e90cc5c73570eed6e"
 dependencies = [
- "content-identity",
+ "content-identity 0.3.0",
  "rkyv",
  "thiserror",
 ]
@@ -520,7 +530,7 @@ dependencies = [
 [[package]]
 name = "signal-sema-translator"
 version = "0.2.0"
-source = "git+https://github.com/LiGoldragon/signal-sema-translator.git?rev=5df821a335bdbd28582f71d4f25d4bd31deee567#5df821a335bdbd28582f71d4f25d4bd31deee567"
+source = "git+https://github.com/LiGoldragon/signal-sema-translator.git?rev=8ff7d0db033c756a0cd7999e72e564ca1c32b4aa#8ff7d0db033c756a0cd7999e72e564ca1c32b4aa"
 dependencies = [
  "name-table 0.3.0",
  "protos",
@@ -556,7 +566,7 @@ name = "structural-codec"
 version = "0.6.0"
 source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=23497c43f81b619158e5cfbd83a012eb63c4186f#23497c43f81b619158e5cfbd83a012eb63c4186f"
 dependencies = [
- "content-identity",
+ "content-identity 0.3.0",
  "name-table 0.1.0",
  "raw-discovery",
  "rkyv",
