@@ -6,10 +6,10 @@ use sema_translator::{
 fn dependency_and_runtime_boundaries_are_explicit() {
     let manifest = include_str!("../Cargo.toml");
     for revision in [
-        "1f558eac44bd03034e51ad98e3a65ec16d8b8411",
+        "50cb4bb53ae2dc4f2516f6912be328ef98ae49f8",
         "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3",
         "0786fbe8caf27552afcdd5deb85bc82ec6088337",
-        "8ff7d0db033c756a0cd7999e72e564ca1c32b4aa",
+        "8c504ba7aa8dbdc5edf7daadbb862bbdaa5613be",
     ] {
         assert!(manifest.contains(revision), "missing exact pin {revision}");
     }
