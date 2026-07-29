@@ -426,7 +426,7 @@ dependencies = [
 
 [[package]]
 name = "sema-translator"
-version = "0.2.0"
+version = "0.3.0"
 dependencies = [
  "blake3",
  "name-table",
@@ -498,9 +498,10 @@ dependencies = [
 
 [[package]]
 name = "signal-sema-translator"
-version = "0.3.0"
-source = "git+https://github.com/LiGoldragon/signal-sema-translator.git?rev=dd8e7b5656833f640e49c099ab3be6f09881f9c5#dd8e7b5656833f640e49c099ab3be6f09881f9c5"
+version = "0.4.0"
+source = "git+https://github.com/LiGoldragon/signal-sema-translator.git?rev=51c02c4a7b6f67d9dad095f11986085d7d65785b#51c02c4a7b6f67d9dad095f11986085d7d65785b"
 dependencies = [
+ "blake3",
  "name-table",
  "protos",
  "rkyv",

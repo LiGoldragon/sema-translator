@@ -9,7 +9,7 @@ fn dependency_and_runtime_boundaries_are_explicit() {
         "50cb4bb53ae2dc4f2516f6912be328ef98ae49f8",
         "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3",
         "0786fbe8caf27552afcdd5deb85bc82ec6088337",
-        "dd8e7b5656833f640e49c099ab3be6f09881f9c5",
+        "51c02c4a7b6f67d9dad095f11986085d7d65785b",
     ] {
         assert!(manifest.contains(revision), "missing exact pin {revision}");
     }

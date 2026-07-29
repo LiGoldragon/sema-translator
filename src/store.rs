@@ -235,13 +235,11 @@ impl AuthorityStore {
         &mut self,
         operation: signal_sema_translator::SealUniversal,
     ) -> Result<DispatchOutcome> {
-        let lowered = operation.lower();
-        let generic_digest = match self.names.request_digest(&lowered) {
+        let request_digest = match operation.canonical_request_digest() {
             Ok(digest) => digest,
-            Err(error) => return Ok(DispatchOutcome::rejected(error.into())),
+            Err(error) => return Ok(DispatchOutcome::rejected(error)),
         };
-        let request_digest =
-            prefixed_digest(b"sema-translator/seal-universal/v1", generic_digest.bytes());
+        let lowered = operation.lower();
 
         if let Some(replay) = self.idempotent_replay(operation.operation_key, request_digest) {
             return Ok(replay);
@@ -505,15 +503,9 @@ impl AuthorityStore {
                 .current_database_marker()
                 .map_err(|error| Error::Engine(error.to_string()))?,
         );
-        let commit_sequence = current
-            .commit_sequence
-            .checked_add(1)
-            .ok_or_else(|| Error::Engine("commit sequence exhausted".into()))?;
-        let snapshot = current
-            .snapshot
-            .checked_add(1)
-            .ok_or_else(|| Error::Engine("snapshot identifier exhausted".into()))?;
-        Ok(DatabaseMarker::new(commit_sequence, snapshot))
+        current
+            .checked_successor()
+            .ok_or_else(|| Error::Engine("database marker exhausted".into()))
     }
 
     fn commit_state(
@@ -959,14 +951,6 @@ fn validate_seal_receipt(
         }
     }
     Ok(())
-}
-
-fn prefixed_digest(prefix: &[u8], material: &[u8; 32]) -> AuthorityRequestDigest {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(&(prefix.len() as u64).to_le_bytes());
-    hasher.update(prefix);
-    hasher.update(material);
-    AuthorityRequestDigest::new(*hasher.finalize().as_bytes())
 }
 
 fn rust_release_digest(
