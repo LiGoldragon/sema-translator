@@ -120,7 +120,7 @@ dependencies = [
  "name-table",
  "raw-discovery",
  "rkyv",
- "structural-codec",
+ "structural-codec 0.22.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=a3ff4dd1ff34)",
  "thiserror",
 ]
 
@@ -424,7 +424,7 @@ dependencies = [
  "core-ethos",
  "getrandom 0.3.4",
  "name-table",
- "structural-codec",
+ "structural-codec 0.22.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=fd3b3bebfe69)",
  "tempfile",
  "thiserror",
 ]
@@ -451,6 +451,18 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 name = "structural-codec"
 version = "0.22.0"
 source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=a3ff4dd1ff34#a3ff4dd1ff34195ade3ac557a15387fe8d2e202b"
+dependencies = [
+ "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410)",
+ "name-table",
+ "raw-discovery",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
+name = "structural-codec"
+version = "0.22.0"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=fd3b3bebfe69#fd3b3bebfe69b8c8cbdfa6c98c6931685b1760e8"
 dependencies = [
  "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410)",
  "name-table",

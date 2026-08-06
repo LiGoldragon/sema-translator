@@ -8,12 +8,12 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use core_ethos::bootstrap::{
-    BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapLanguage,
-    BootstrapNamingAuthority, BootstrapNamingAuthorityRequest, BootstrapPriorIdentities,
-    BootstrapPriorSlot, BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan,
-    BootstrapReader, BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder,
-    DeclarationOccurrence, EthosVersion, GeneratedStreamAssignments, IdentityDisposition,
-    IdentitySchema, IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
+    BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapNamingAuthority,
+    BootstrapNamingAuthorityRequest, BootstrapPriorIdentities, BootstrapPriorSlot,
+    BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan, BootstrapReader,
+    BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder, DeclarationOccurrence,
+    EthosVersion, GeneratedStreamAssignments, IdentityDisposition, IdentitySchema,
+    IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
     PreparedBootstrapDraft, PreparedBootstrapTransaction, TextualMetadataRecord,
     TextualMetadataSnapshot, TextualMetadataTransition, TextualProjectionAddress,
     bootstrap_prior_definitions,
@@ -319,7 +319,7 @@ impl NameView for AuthorityNameView {
     }
 }
 
-impl EncodedNameResolver<BootstrapLanguage> for AuthorityNameView {
+impl EncodedNameResolver for AuthorityNameView {
     fn resolve(&self, encoded_name: &EncodedName) -> Option<&TextualName> {
         self.metadata
             .get(encoded_name)
