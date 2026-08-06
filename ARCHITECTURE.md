@@ -3,8 +3,8 @@
 ## Boundary
 
 `sema-translator` is one stateful daemon with one owned embedded SEMA database.
-It is the encodedID-chain ↔ exact-spelling authority. Component engines keep
-their documents in their own databases.
+It is the shared naming authority. Component engines keep their documents in
+their own databases.
 
 ```text
 clients
@@ -20,6 +20,30 @@ sema-engine
   ▼
 sema-translator.sema
 ```
+
+The renewed bootstrap source boundary is an isolated library module in this
+same authority owner:
+
+```text
+core-ethos plan + existing BootstrapCatalog
+  │
+  ├── explicit authority-approved metadata after-state
+  ├── already-minted opaque identities + canonical bytes
+  └── explicit generated-Stream identity seats
+  ▼
+SemaBootstrapNamingAuthority exact-draft receipt
+  ▼
+PreparedBootstrapTransaction<A>
+  │
+  ├── canonical source after receipt/model revalidation
+  └── VerifiedBootstrapResolver after the same gate
+```
+
+This path neither reads nor extends the nested table allocation cursor. It does
+not derive EncodedNames from spelling, content, declaration order, or current
+carrier anatomy. The approval input is exact policy data owned outside the
+reader; missing and surplus seats are failures. Its transaction and resolver
+are transient handoff values, not component documents stored by the authority.
 
 The actor is the only database owner and serializes every request. There is no
 distributed transaction: a translator commit is independently durable. A
@@ -109,6 +133,14 @@ rename.
 Idempotency lookup precedes optimistic-state checks. Replaying the same key and
 semantic digest returns the original receipt and marker even after later
 commits. Reusing a key with different content fails without a write.
+
+Bootstrap assembly is deliberately not another allocation write. The module
+accepts a complete approved before-to-after naming proposal, matches its opaque
+seats to a source plan, and lets the strict reader validate and seal that exact
+draft. New identity minting and approval persistence remain authority inputs;
+core-ethos, core-nomos, schema-rust, and source spelling never synthesize them.
+The resolver is constructed only after the matching reader has revalidated the
+authority receipt and complete prepared model.
 
 ## Reads and events
 

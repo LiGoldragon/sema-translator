@@ -3,9 +3,12 @@
 //! One actor owns one embedded SEMA database. The runtime persists only the
 //! complete nested [`signal_sema_translator::VocabularyNameTable`] archive,
 //! trusted Rust-vocabulary release metadata, and authority-level idempotency
-//! receipts. Component documents never enter this crate.
+//! receipts. The bootstrap assembly boundary authenticates caller-supplied
+//! opaque identity seats transiently; component documents never enter the
+//! authority store.
 
 mod authorization;
+pub mod bootstrap;
 mod runtime;
 mod store;
 pub mod wire;

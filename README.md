@@ -1,13 +1,38 @@
 # sema-translator
 
-`sema-translator` is the sole-writer authority for exact spelling ↔
-variant-fronted encodedID-chain correspondence. It owns nested,
-module-scoped name tables, allocates declarations, resolves references, performs
+`sema-translator` is the sole-writer naming authority. Its existing daemon owns
+the nested exact-spelling tables, resolves references, performs
 identity-preserving operational rename, and publishes append-only Rust
-vocabulary releases.
+vocabulary releases. Its production bootstrap module separately authenticates
+explicit authority-approved opaque identity seats for the renewed Ethos reader.
 
 It does not store Ethos, Nomos, Logos, Spirit, Orchestrate, Mind, Messenger, or
 other component documents. It has no compatibility path to `sema-storage`.
+
+## Bootstrap transaction assembly
+
+`sema_translator::bootstrap` is the source-to-transaction authority boundary for
+the provisional Interface, Nexus, and Sema bootstrap readers. A caller supplies
+one complete authority approval:
+
+- the exact textual-metadata after snapshot;
+- canonical bytes for every already-minted new opaque identity;
+- exact initiation and termination identities for every authored Stream.
+
+The module plans the source through `core-ethos`, matches declarations to exact
+metadata addresses, distinguishes Existing from New against the configured
+before snapshot, and refuses missing or unused seats. It never derives an
+identity from spelling or content and has no allocation fallback. The injected
+`SemaBootstrapNamingAuthority` issues a receipt only for the exact approved
+draft. Canonical source writing revalidates that receipt and the complete
+prepared model before `VerifiedBootstrapResolver` can be constructed.
+
+The resulting `VerifiedBootstrapAssembly` keeps together the matching reader,
+authority-branded `PreparedBootstrapTransaction`, canonical source, and
+post-validation resolver required by Nomos and Rust Logos. This is transient
+assembly and verification; it does not put component documents in the naming
+authority database and does not translate through the historical six-slot
+schema model or the spelling-derived nested allocator.
 
 ## Runtime surfaces
 
@@ -51,6 +76,8 @@ fallbacks.
   external receipt for every post-bootstrap state transition;
 - unknown contract-local routes and live-socket replacement are refused;
 - post-commit events are emitted only for newly committed mutations.
+- authority-approved bootstrap source can be sealed into a branded transaction
+  with a resolver that is unavailable before receipt validation.
 
 Every Git dependency is pinned to a published full revision:
 
