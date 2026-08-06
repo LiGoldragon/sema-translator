@@ -39,7 +39,7 @@ runtime = [
 
 [dependencies]
 blake3 = { version = "1", optional = true }
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "7a1384874f3747de97c6ccbb4ae6fa2149b27330", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "249ed6ac5b8a3a84fee5884bcb35b929f07e9166", optional = true }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d", optional = true }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"], optional = true }
 sema-engine = { git = "https://github.com/LiGoldragon/sema-engine.git", rev = "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3", optional = true }
