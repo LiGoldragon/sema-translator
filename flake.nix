@@ -1,5 +1,5 @@
 {
-  description = "sema-translator — sole-writer nested naming authority";
+  description = "sema-translator — authority-approved bootstrap translation";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -18,11 +18,7 @@
         inherit (rust) craneLib toolchain;
         src = rust.cleanSource { root = ./.; };
         commonArguments = { inherit src; strictDeps = true; };
-        bootstrapArguments = commonArguments // {
-          cargoExtraArgs = "--no-default-features --features bootstrap";
-        };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
-        bootstrapCargoArtifacts = craneLib.buildDepsOnly bootstrapArguments;
       in
       {
         packages.default = craneLib.buildPackage (commonArguments // {
@@ -35,14 +31,12 @@
           test = craneLib.cargoTest (commonArguments // {
             inherit cargoArtifacts;
           });
-          process = craneLib.cargoTest (commonArguments // {
-            inherit cargoArtifacts;
-            cargoTestExtraArgs = "--test process";
-          });
-          bootstrap = craneLib.cargoTest (bootstrapArguments // {
-            cargoArtifacts = bootstrapCargoArtifacts;
-            cargoTestExtraArgs = "--test bootstrap --test dependency_boundary";
-          });
+          sole-bootstrap-surface = pkgs.runCommand "sema-translator-sole-bootstrap-surface" { } ''
+            test "$(find ${src}/src -maxdepth 1 -type f -name '*.rs' -printf '%f\n' | sort | tr '\n' ' ')" = "bootstrap.rs lib.rs "
+            test "$(find ${src}/tests -maxdepth 1 -type f -name '*.rs' -printf '%f\n' | sort | tr '\n' ' ')" = "bootstrap.rs dependency_boundary.rs "
+            ! grep -R -E 'mod (authorization|runtime|store|wire)|sema_engine|tokio::|AUTHORITY_ROUTE|DAEMON_BINARY_NAME' ${src}/src
+            touch $out
+          '';
           doc = craneLib.cargoDoc (commonArguments // {
             inherit cargoArtifacts;
             RUSTDOCFLAGS = "-D warnings";

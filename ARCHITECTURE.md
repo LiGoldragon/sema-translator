@@ -1,188 +1,36 @@
-# sema-translator architecture
+# Architecture
 
-## Boundary
-
-`sema-translator` is one stateful daemon with one owned embedded SEMA database.
-It is the shared naming authority. Component engines keep their documents in
-their own databases.
+`sema-translator` has one surface: it turns an authority-approved naming
+transition into a verified bootstrap assembly for strict Ethos input.
 
 ```text
-clients
-  │ signal-sema-translator contract 4 / wire revision 1
-  ▼
-bound Unix socket
-  │ kernel peer UID → typed principal + checked claim
-  ▼
-one authority actor
-  │ pure name-table staging
-  ▼
-sema-engine
-  ▼
-sema-translator.sema
+prepared Ethos draft
+        +
+explicit authority identity seats
+        |
+        v
+BootstrapTransactionAssembler
+        |
+        +-- exact transition and seat validation
+        +-- authority-bound receipt validation
+        +-- read-only verified name projection
+        |
+        v
+VerifiedBootstrapAssembly
 ```
 
-The renewed bootstrap source boundary is an isolated library module in this
-same authority owner:
+The caller supplies identities that already exist in the naming authority.
+`SemaBootstrapNamingAuthority` neither mints identities nor derives them from
+spelling or content. It approves only the configured before/after metadata
+transition, the exact set of new canonical identity bytes, and the exact
+generated stream seats. The reader exposes a resolver only after that complete
+transaction validates.
 
-```text
-core-ethos plan + existing BootstrapCatalog
-  │
-  ├── explicit authority-approved metadata after-state
-  ├── already-minted opaque identities + canonical bytes
-  └── explicit generated-Stream identity seats
-  ▼
-SemaBootstrapNamingAuthority exact-draft receipt
-  ▼
-PreparedBootstrapTransaction<A>
-  │
-  ├── canonical source after receipt/model revalidation
-  └── VerifiedBootstrapResolver after the same gate
-```
+`core-ethos` owns planning and prepared bootstrap transaction shapes.
+`signal-sema-translator` owns the encoded vocabulary identities used at the
+boundary. `sema-translator` supplies the authority proof and verified assembly.
+`sema-engine` owns runtime execution and persistence.
 
-This path neither reads nor extends the nested table allocation cursor. It does
-not derive EncodedNames from spelling, content, declaration order, or current
-carrier anatomy. The approval input is exact policy data owned outside the
-reader; missing and surplus seats are failures. Its transaction and resolver
-are transient handoff values, not component documents stored by the authority.
-
-The actor is the only database owner and serializes every request. There is no
-distributed transaction: a translator commit is independently durable. A
-client crash after that commit is recovered through the operation receipt.
-
-## Stored family
-
-One versioned SEMA record family contains:
-
-- exactly one authority-state row;
-- one immutable external receipt row per committed client mutation.
-
-The state row carries:
-
-- archive marker `SEMATR01` and explicit archive version 1;
-- exact `SSTA` root records for `VocabularyRoot::{Universal, Rust}`;
-- the complete integrity-protected name-table archive;
-- the monotonic trusted Rust release ledger.
-
-Name-table heads, snapshots, allocation cursors, and generic receipts are
-inside the complete archive. The external receipt adds the
-contract-level request digest, operation result, Rust release version where
-applicable, and exact embedded database marker.
-
-The state row and new external receipt row land through one heterogeneous
-`sema-engine` commit. The daemon predicts both next marker coordinates from
-the actor-owned current marker, stores that prediction, and verifies the
-returned commit marker byte-for-byte before updating memory or answering.
-Startup independently checks every external receipt marker against the SEMA
-commit log and requires its state and receipt record keys in the same commit.
-Exactly one receiptless state commit is permitted: the fixed bootstrap. Every
-later state commit is exactly one state mutation plus one newly asserted
-receipt. A receipt-only change, removed receipt, repeated receipt key, foreign
-family, discontinuous marker, or disagreement between metadata and versioned
-logs prevents readiness. Startup refolds the authoritative versioned log,
-which verifies the full digest chain before materialized records are trusted.
-
-`Engine::open_recovering` runs before the socket binds. Startup then validates
-the archive envelope, both explicit roots, complete name-table archive and
-snapshot integrity, table ancestry, generic receipts, Rust release monotonicity,
-external receipt keys, markers, commit ancestry, and referenced historical
-snapshots. Any inconsistency prevents readiness.
-
-Legacy flat archives, the central storage archive, unknown roots, and
-unsupported archive versions have no migration or inference path.
-
-## Initial authority
-
-A virgin database receives one trusted internal bootstrap:
-
-```text
-Universal (mutable)  0 ↔ Integer
-                     1 ↔ String
-
-Rust (immutable)     0 ↔ u64
-```
-
-The bootstrap shape is fixed in code. No caller supplies mutability. Universal
-builtins remain ordinary mutable entries whose operational rename is protected
-by authorization. Rust tables remain spelling-immutable.
-
-## Writes
-
-`SealUniversal` lowers only to mutable Universal tables. Declarations allocate
-or reuse exact spellings; references only resolve. Parent tables are staged
-before child tables. Same-table redefinition, an unresolved reference, or any
-other failure discards the entire staged graph.
-
-Fresh entries use name-table's canonical exact-byte allocation ordering. This
-makes an identical declaration set allocate identical IDs and produce an
-identical digest regardless of traversal order.
-
-The allocation behavior is documented at its generic allocation site:
-changing authored text introduces an unseen spelling, receives a new ID, and
-leaves the previous row allocated. Only `Rename` preserves identity.
-
-`Rename` targets one complete chain. Name-table loads the owning head and
-checks table mutability before target lookup. A successful rename changes one
-spelling, advances that table's immutable generation, and leaves the target,
-child-table address, and all descendant chains unchanged.
-
-`PublishRustVocabulary` is separately authorized and monotonically versioned.
-It can resolve existing Rust spellings and append new ones. Its DTO and
-immutable table policy cannot express alteration, removal, rebinding, or
-rename.
-
-Idempotency lookup precedes optimistic-state checks. Replaying the same key and
-semantic digest returns the original receipt and marker even after later
-commits. Reusing a key with different content fails without a write.
-
-Bootstrap assembly is deliberately not another allocation write. The module
-accepts a complete approved before-to-after naming proposal, matches its opaque
-seats to a source plan, and lets the strict reader validate and seal that exact
-draft. New identity minting and approval persistence remain authority inputs;
-core-ethos, core-nomos, schema-rust, and source spelling never synthesize them.
-The resolver is constructed only after the matching reader has revalidated the
-authority receipt and complete prepared model.
-
-## Reads and events
-
-Revision-1 reads return the current marker, exact heads, current snapshots,
-verified historical snapshots, or committed receipts. Root selection is exact;
-there is no cross-root fallback.
-
-The actor publishes an internal broadcast event only after commit. On the Unix
-socket, a newly committed mutating exchange also receives its causally
-corresponding `PostCommitEvent` after the durable reply. A replay or refusal
-does not emit another event. Revision 1 defines no independent long-lived
-subscription operation.
-
-## Wire and authorization
-
-`TranslatorFrame` validates the fixed contract ID and wire revision in the
-eight-byte header before body byte-check or deserialization. Wrong contracts,
-unsupported revisions, unbound legacy headers, and malformed bodies close the
-connection before dispatch.
-
-The request's `AuthorizationClaim` is input, not proof. On every accepted
-connection the daemon asks the kernel for the Unix peer UID and derives a
-domain-separated `PrincipalId`; request bytes never choose that authenticated
-identity. The static deny-by-default policy must then match that principal and
-the operation's exact role/capability. The daemon grants the revision-1
-authority set only to the explicitly configured UID. Deployments that need
-finer separation run clients under distinct service accounts or replace the
-policy without weakening peer authentication.
-
-Only `AUTHORITY_ROUTE` is accepted after contract binding. A second daemon
-probes an existing socket and refuses to replace a live listener; it removes a
-socket only after a refused connection and an unchanged inode check. The
-process acquires this socket ownership before opening the embedded database, so
-a competing process cannot touch SEMA before discovering the live authority.
-The listener owns its exact device/inode pair and removes that node on a
-pre-readiness failure or orderly shutdown. Binding refuses a group- or
-world-writable runtime directory, so an untrusted UID cannot replace a checked
-socket between validation and unlink.
-
-## Donor boundary
-
-The single-owner actor, restart, post-commit notification, and framed-socket
-patterns were reseated from the frozen storage implementation. None of its
-document records, flat identity authority, universe registry, continuation
-intent, allocator scopes, old socket, or central-storage contract exists here.
+The `bootstrap` feature is the default and sole crate surface. There is no
+runtime feature, engine dependency, database, actor, daemon, store, socket, or
+wire route in this repository.
