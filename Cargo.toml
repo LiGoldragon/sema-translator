@@ -1,6 +1,6 @@
 [package]
 name = "sema-translator"
-version = "0.4.0"
+version = "0.5.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -18,7 +18,7 @@ path = "src/bin/sema-translator-daemon.rs"
 
 [dependencies]
 blake3 = "1"
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "db5a97a573113202e4de6c97e71b33491bd9666f" }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "c84541d0dc94b31fd1021e187b56b121d9dab482" }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d" }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
 sema-engine = { git = "https://github.com/LiGoldragon/sema-engine.git", rev = "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3" }
