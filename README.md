@@ -2,8 +2,9 @@
 
 Sema-owned bootstrap identity authority for strict Ethos assembly.
 
-Callers provide only source text and `SourcePlacement`. `SemaBootstrapAuthority`
-privately mints opaque `EncodedName` values with a CSPRNG, derives the direct
+Callers provide only source text and `SourcePlacement` to `authorize_bootstrap`.
+Sema privately owns the authority instance, mints opaque `EncodedName` values
+with a CSPRNG, derives the direct
 `TrueName` of every strict declaration value, and stages canonical textual
 metadata plus the authority receipt. Replaying an already realized request does
 not mint again; a distinct request waits for the later atomic persistence owner.
@@ -16,7 +17,7 @@ engine, actor, database, daemon, store, socket, or wire service.
 
 The public authority surface is:
 
-- `SemaBootstrapAuthority`
+- `authorize_bootstrap`
 - `SourcePlacement`
 - opaque `AuthorizedBootstrap`
 

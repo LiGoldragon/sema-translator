@@ -6,6 +6,7 @@
 //! capabilities.
 
 use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Mutex, OnceLock};
 
 use core_ethos::bootstrap::{
     BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapNamingAuthority,
@@ -50,12 +51,12 @@ impl SourcePlacement {
     }
 }
 
-/// The sole public entry point for bootstrap identity authority.
+/// Sema's private bootstrap identity authority.
 ///
 /// It mints opaque names with the operating system CSPRNG.  It has no API for
 /// accepting caller-selected names, proofs, receipts, canonical bytes, seats,
 /// catalogs, or preassembled transactions.
-pub struct SemaBootstrapAuthority {
+struct SemaBootstrapAuthority {
     grammar: BootstrapGrammarIdentities,
     seed: SeedAuthorityState,
     used_names: BTreeSet<EncodedName>,
@@ -66,7 +67,7 @@ pub struct SemaBootstrapAuthority {
 
 impl SemaBootstrapAuthority {
     /// Start a fresh authority from the identity-free core bootstrap seed.
-    pub fn new() -> Result<Self, BootstrapAssemblyError> {
+    fn new() -> Result<Self, BootstrapAssemblyError> {
         let mut used_names = BTreeSet::new();
         let mut used_canonical_bytes = BTreeSet::new();
         let grammar = BootstrapGrammarIdentities {
@@ -236,6 +237,42 @@ impl SemaBootstrapAuthority {
             new_canonical_bytes,
         })
     }
+}
+
+/// Plan, mint, seal, and stage one source-plus-placement request.
+///
+/// This is the complete caller contract. The authority instance, its CSPRNG
+/// allocation set, replay map, and pending stage are owned by Sema in this
+/// process. hqu.30 is responsible for replacing the process-local stage with
+/// the atomic durable persistence transition; callers never construct or pass
+/// that state.
+pub fn authorize_bootstrap(
+    source: &str,
+    placement: SourcePlacement,
+) -> Result<AuthorizedBootstrap, BootstrapAssemblyError> {
+    let state = authority_state();
+    let mut authority = state
+        .lock()
+        .map_err(|_| BootstrapAssemblyError::AuthorityStatePoisoned)?;
+    if authority.is_none() {
+        *authority = Some(SemaBootstrapAuthority::new()?);
+    }
+    authority
+        .as_mut()
+        .expect("authority state was initialized above")
+        .authorize(source, placement)
+}
+
+fn authority_state() -> &'static Mutex<Option<SemaBootstrapAuthority>> {
+    static AUTHORITY_STATE: OnceLock<Mutex<Option<SemaBootstrapAuthority>>> = OnceLock::new();
+    AUTHORITY_STATE.get_or_init(|| Mutex::new(None))
+}
+
+#[cfg(test)]
+pub(crate) fn reset_authority_for_tests() {
+    *authority_state()
+        .lock()
+        .expect("test authority mutex is not poisoned") = None;
 }
 
 /// An opaque, authority-sealed result.  Its receipt and transaction remain
@@ -545,4 +582,7 @@ pub enum BootstrapAssemblyError {
         "a bootstrap change is already staged; persist or replay it before authorizing another source"
     )]
     PendingStagedChange,
+    /// The Sema-owned authority state was poisoned by an earlier panic.
+    #[error("the Sema-owned bootstrap authority state is unavailable")]
+    AuthorityStatePoisoned,
 }

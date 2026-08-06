@@ -102,6 +102,7 @@ fn public_bootstrap_surface_has_no_identity_or_receipt_constructor() {
 
     for forbidden in [
         "pub struct SemaNamingAuthority",
+        "pub struct SemaBootstrapAuthority",
         "pub struct AuthorityProof",
         "pub struct AuthorityReceipt",
         "pub struct StagedBootstrapChange",

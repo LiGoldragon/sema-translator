@@ -7,7 +7,7 @@ source plus source placement.
 source text + SourcePlacement
         |
         v
-SemaBootstrapAuthority
+Sema-owned authority state + authorize_bootstrap
         |
         +-- allocation-free plan (refuses bundled Stream)
         +-- private CSPRNG `EncodedName` allocation
