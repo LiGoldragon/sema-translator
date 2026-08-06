@@ -21,6 +21,14 @@ use name_table::Name;
 use signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 use structural_codec::EncodedNameResolver;
 
+fn rust_identity(local: u16) -> VocabularyEncodedId {
+    VocabularyEncodedId::new(
+        VocabularyRoot::Rust,
+        vec![name_table::LocalEncodedId::new(local)],
+    )
+    .expect("authority-owned Rust vocabulary identities are nonempty")
+}
+
 /// Durable identity of one configured naming authority.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct BootstrapAuthorityIdentity([u8; 32]);
@@ -50,6 +58,88 @@ impl BootstrapAuthorityRevision {
     /// Stored revision number.
     pub const fn value(self) -> u64 {
         self.0
+    }
+}
+
+/// The fixed Rust vocabulary accepted by the bootstrap projection.
+///
+/// The authority owns its identity release. Consumers receive only this sealed
+/// read view; they cannot create, amend, or substitute its vocabulary.
+#[derive(Clone, Debug)]
+pub struct SealedRustVocabulary {
+    identities: [VocabularyEncodedId; 10],
+    names: BTreeMap<VocabularyEncodedId, Name>,
+}
+
+/// A read position in the authority-sealed bootstrap Rust vocabulary.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum RustVocabularyTerm {
+    NewtypeItem,
+    EnumerationItem,
+    Variant,
+    TupleField,
+    TypeReference,
+    StructKeyword,
+    EnumKeyword,
+    PublicKeyword,
+    Comma,
+    Semicolon,
+}
+
+impl RustVocabularyTerm {
+    const fn index(self) -> usize {
+        match self {
+            Self::NewtypeItem => 0,
+            Self::EnumerationItem => 1,
+            Self::Variant => 2,
+            Self::TupleField => 3,
+            Self::TypeReference => 4,
+            Self::StructKeyword => 5,
+            Self::EnumKeyword => 6,
+            Self::PublicKeyword => 7,
+            Self::Comma => 8,
+            Self::Semicolon => 9,
+        }
+    }
+}
+
+impl SealedRustVocabulary {
+    /// Read the one bootstrap Rust vocabulary released by this authority.
+    pub fn bootstrap() -> Self {
+        let locals = [
+            37769, 61673, 64176, 16719, 16803, 52139, 13965, 64644, 44793, 4179,
+        ];
+        let spellings = [
+            "NewtypeItemRecord",
+            "EnumerationItemRecord",
+            "VariantRecord",
+            "TupleFieldRecord",
+            "TypeReferenceRecord",
+            "struct",
+            "enum",
+            "pub",
+            ",",
+            ";",
+        ];
+        let identities = locals.map(rust_identity);
+        let names = identities
+            .iter()
+            .cloned()
+            .zip(spellings)
+            .map(|(identity, spelling)| (identity, Name::new(spelling)))
+            .collect();
+        Self { identities, names }
+    }
+
+    /// Read one authority-owned vocabulary identity.
+    pub fn identity(&self, term: RustVocabularyTerm) -> &VocabularyEncodedId {
+        &self.identities[term.index()]
+    }
+}
+
+impl EncodedNameResolver<VocabularyRoot> for SealedRustVocabulary {
+    fn resolve(&self, encoded_id: &VocabularyEncodedId) -> Option<&Name> {
+        self.names.get(encoded_id)
     }
 }
 
@@ -284,15 +374,19 @@ impl EncodedNameResolver<VocabularyRoot> for VerifiedBootstrapResolver {
     }
 }
 
-/// A validated reader, authority-branded transaction, and resolver handoff.
-pub struct VerifiedBootstrapAssembly {
+/// Opaque authority-sealed bootstrap meaning.
+///
+/// Only this authority boundary constructs it. Consumers can inspect the
+/// validated transaction and its read-only projections, but cannot mint a
+/// proof, receipt, seat, or replacement assembly.
+pub struct AuthorizedBootstrap {
     reader: BootstrapReader<SemaBootstrapNamingAuthority>,
     transaction: PreparedBootstrapTransaction<SemaBootstrapNamingAuthority>,
     resolver: VerifiedBootstrapResolver,
     canonical_source: String,
 }
 
-impl VerifiedBootstrapAssembly {
+impl AuthorizedBootstrap {
     /// Matching reader used to revalidate or canonically write the transaction.
     pub const fn reader(&self) -> &BootstrapReader<SemaBootstrapNamingAuthority> {
         &self.reader
@@ -345,7 +439,7 @@ impl BootstrapTransactionAssembler {
         &self,
         source: &str,
         approval: AuthorizedBootstrapTransition,
-    ) -> Result<VerifiedBootstrapAssembly, BootstrapAssemblyError> {
+    ) -> Result<AuthorizedBootstrap, BootstrapAssemblyError> {
         let authority = SemaBootstrapNamingAuthority {
             identity: self.authority,
             revision: self.revision,
@@ -379,7 +473,7 @@ impl BootstrapTransactionAssembler {
             self.revision,
             transaction.naming_transition().after(),
         );
-        Ok(VerifiedBootstrapAssembly {
+        Ok(AuthorizedBootstrap {
             reader,
             transaction,
             resolver,
