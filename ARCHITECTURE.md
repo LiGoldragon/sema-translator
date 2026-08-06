@@ -1,35 +1,33 @@
 # Architecture
 
-`sema-translator` has one surface: it turns an authority-approved naming
-transition into a verified bootstrap assembly for strict Ethos input.
+`sema-translator` has one surface: it owns naming authority for strict Ethos
+source plus source placement.
 
 ```text
-prepared Ethos draft
-        +
-explicit authority identity seats
+source text + SourcePlacement
         |
         v
-BootstrapTransactionAssembler
+SemaBootstrapAuthority
         |
-        +-- exact transition and seat validation
-        +-- authority-bound receipt validation
-        +-- read-only verified name projection
+        +-- allocation-free plan (refuses bundled Stream)
+        +-- private CSPRNG `EncodedName` allocation
+        +-- canonical `TextualMetadataRecord` transition
+        +-- receipt and direct strict-value `TrueName` stage
         |
         v
-VerifiedBootstrapAssembly
+opaque AuthorizedBootstrap
 ```
 
-The caller supplies identities that already exist in the naming authority.
-`SemaBootstrapNamingAuthority` neither mints identities nor derives them from
-spelling or content. It approves only the configured before/after metadata
-transition, the exact set of new canonical identity bytes, and the exact
-generated stream seats. The reader exposes a resolver only after that complete
-transaction validates.
+The caller cannot provide or construct identities, proof, receipt, seat,
+catalog, canonical bytes, or transaction. The authority resolves an exact live
+textual projection address to its existing opaque name, or mints a new one.
+Conflicting occupied addresses and implicit rename/reparent attempts are typed
+refusals. The plan occurrence is a local phase join only and never persists.
 
-`core-ethos` owns planning and prepared bootstrap transaction shapes.
-`signal-sema-translator` owns the encoded vocabulary identities used at the
-boundary. `sema-translator` supplies the authority proof and verified assembly.
-`sema-engine` owns runtime execution and persistence.
+`core-ethos` owns planning and prepared bootstrap transaction shapes plus the
+identity-free prior vocabulary seed. `sema-translator` owns allocation,
+metadata, replay, and staging. The later persistence owner performs the atomic
+durable transition; `sema-engine` owns runtime execution.
 
 The `bootstrap` feature is the default and sole crate surface. There is no
 runtime feature, engine dependency, database, actor, daemon, store, socket, or

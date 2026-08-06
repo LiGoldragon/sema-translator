@@ -33,13 +33,13 @@ fn default_and_explicit_bootstrap_are_the_same_complete_surface() {
     ]);
 
     assert_eq!(default, explicit);
-    for producer in ["core-ethos ", "signal-sema-translator "] {
+    for producer in ["core-ethos ", "name-table ", "content-identity "] {
         assert!(
             default.contains(producer),
             "bootstrap graph omitted {producer}"
         );
     }
-    for forbidden in ["sema-engine ", "tokio "] {
+    for forbidden in ["sema-engine ", "signal-sema-translator ", "tokio "] {
         assert!(
             !default.contains(forbidden),
             "bootstrap graph contains rejected runtime owner {forbidden}:\n{default}"
@@ -79,19 +79,44 @@ fn repository_owns_no_runtime_daemon_store_or_wire_surface() {
 }
 
 #[test]
-fn bootstrap_resolves_one_strict_frame_identity() {
+fn bootstrap_has_no_retired_vocabulary_producer() {
     let lock =
         fs::read_to_string(repository_root().join("Cargo.lock")).expect("Cargo.lock is readable");
 
-    assert_eq!(lock.matches("name = \"signal-frame\"").count(), 1);
-    assert!(lock.contains("8aa0bcaeb29fe9e461a11706a469638d2fd109ac"));
     for rejected in [
-        "f46872e7e8edae5264c892443d415a273b231234",
-        "0786fbe8caf27552afcdd5deb85bc82ec6088337",
+        "signal-sema-translator",
+        "signal-frame",
+        "legacy-name-table",
     ] {
         assert!(
             !lock.contains(rejected),
             "old Frame identity {rejected} survived"
+        );
+    }
+}
+
+#[test]
+fn public_bootstrap_surface_has_no_identity_or_receipt_constructor() {
+    let source = fs::read_to_string(repository_root().join("src/bootstrap.rs"))
+        .expect("bootstrap source is readable");
+
+    for forbidden in [
+        "pub struct SemaNamingAuthority",
+        "pub struct AuthorityProof",
+        "pub struct AuthorityReceipt",
+        "pub struct StagedBootstrapChange",
+        "pub struct BootstrapCatalog",
+        "pub struct CanonicalIdentityOrder",
+        "pub struct NamingAssignments",
+        "pub struct GeneratedStreamAssignments",
+        "pub fn mint_name",
+        "pub fn mint_canonical_bytes",
+        "pub fn transaction",
+        "pub fn receipt",
+    ] {
+        assert!(
+            !source.contains(forbidden),
+            "caller-constructible authority capability survived: {forbidden}"
         );
     }
 }

@@ -18,16 +18,18 @@ default = ["bootstrap"]
 bootstrap = [
   "dep:core-ethos",
   "dep:name-table",
-  "dep:signal-sema-translator",
   "dep:structural-codec",
+  "dep:content-identity",
+  "dep:getrandom",
   "dep:thiserror",
 ]
 
 [dependencies]
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "e6827c47ef254a4061a9d1a16b4b780673dc5d83", optional = true }
-name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d", optional = true }
-signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3f41813dd63904c7e2b3da4382eff64ed1bf12fe", optional = true }
-structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "70ef879bc99eb247b7661169794ee189d45c62ff", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "cc32c507da45998a18682af939915d192d902b9f", optional = true }
+name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "7dd5db15c16b4246c83d049c759415d3252a7d43", optional = true }
+structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "a3ff4dd1ff34", optional = true }
+content-identity = { git = "https://github.com/LiGoldragon/content-identity.git", rev = "df1d25c7cd9e822ae03255e04ede59a00b78480b", optional = true }
+getrandom = { version = "0.3", optional = true }
 thiserror = { version = "2", optional = true }
 
 [dev-dependencies]
