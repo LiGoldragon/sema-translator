@@ -6,20 +6,23 @@
 //! capabilities.
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Mutex, OnceLock};
 
 use core_ethos::bootstrap::{
-    BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapNamingAuthority,
-    BootstrapNamingAuthorityRequest, BootstrapPriorIdentities, BootstrapPriorSlot,
-    BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan, BootstrapReader,
-    BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder, DeclarationOccurrence,
-    EthosVersion, GeneratedStreamAssignments, IdentityDisposition, IdentitySchema,
-    IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
+    BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapLanguage,
+    BootstrapNamingAuthority, BootstrapNamingAuthorityRequest, BootstrapPriorIdentities,
+    BootstrapPriorSlot, BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan,
+    BootstrapReader, BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder,
+    DeclarationOccurrence, EthosVersion, GeneratedStreamAssignments, IdentityDisposition,
+    IdentitySchema, IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
     PreparedBootstrapDraft, PreparedBootstrapTransaction, TextualMetadataRecord,
     TextualMetadataSnapshot, TextualMetadataTransition, TextualProjectionAddress,
     bootstrap_prior_definitions,
 };
-use name_table::{EncodedName, TextualName, TrueName};
+use name_table::{
+    EncodedName, FilePlacement, ModulePlacement, NameAssociation, NameView, TextualMetadata,
+    TextualName, TrueName,
+};
+use structural_codec::EncodedNameResolver;
 
 /// Caller-declared location for one source text.
 ///
@@ -51,12 +54,12 @@ impl SourcePlacement {
     }
 }
 
-/// Sema's private bootstrap identity authority.
+/// An empty handle to one private Sema bootstrap authority world.
 ///
 /// It mints opaque names with the operating system CSPRNG.  It has no API for
 /// accepting caller-selected names, proofs, receipts, canonical bytes, seats,
 /// catalogs, or preassembled transactions.
-struct SemaBootstrapAuthority {
+pub struct SemaBootstrapAuthority {
     grammar: BootstrapGrammarIdentities,
     seed: SeedAuthorityState,
     used_names: BTreeSet<EncodedName>,
@@ -66,8 +69,12 @@ struct SemaBootstrapAuthority {
 }
 
 impl SemaBootstrapAuthority {
-    /// Start a fresh authority from the identity-free core bootstrap seed.
-    fn new() -> Result<Self, BootstrapAssemblyError> {
+    /// Start a fresh, empty authority world from the identity-free core seed.
+    ///
+    /// This constructor accepts no identity, proof, receipt, seat, catalog, or
+    /// canonical bytes. Durable/restart replay and atomic installation belong
+    /// to hqu.30 rather than this in-memory authority world.
+    pub fn new() -> Result<Self, BootstrapAssemblyError> {
         let mut used_names = BTreeSet::new();
         let mut used_canonical_bytes = BTreeSet::new();
         let grammar = BootstrapGrammarIdentities {
@@ -132,6 +139,8 @@ impl SemaBootstrapAuthority {
         let true_names = transaction.strict_value_true_names()?;
         let result = AuthorizedBootstrap {
             canonical_source,
+            name_view: AuthorityNameView::from_snapshot(&allocation.after, &request.placement),
+            reader,
             transaction,
         };
         let stage = StagedBootstrapChange {
@@ -235,47 +244,13 @@ impl SemaBootstrapAuthority {
     }
 }
 
-/// Plan, mint, seal, and stage one source-plus-placement request.
-///
-/// This is the complete caller contract. The authority instance, its CSPRNG
-/// allocation set, replay map, and pending stage are owned by Sema in this
-/// process. hqu.30 is responsible for replacing the process-local stage with
-/// the atomic durable persistence transition; callers never construct or pass
-/// that state.
-pub fn authorize_bootstrap(
-    source: &str,
-    placement: SourcePlacement,
-) -> Result<AuthorizedBootstrap, BootstrapAssemblyError> {
-    let state = authority_state();
-    let mut authority = state
-        .lock()
-        .map_err(|_| BootstrapAssemblyError::AuthorityStatePoisoned)?;
-    if authority.is_none() {
-        *authority = Some(SemaBootstrapAuthority::new()?);
-    }
-    authority
-        .as_mut()
-        .expect("authority state was initialized above")
-        .authorize(source, placement)
-}
-
-fn authority_state() -> &'static Mutex<Option<SemaBootstrapAuthority>> {
-    static AUTHORITY_STATE: OnceLock<Mutex<Option<SemaBootstrapAuthority>>> = OnceLock::new();
-    AUTHORITY_STATE.get_or_init(|| Mutex::new(None))
-}
-
-#[cfg(test)]
-pub(crate) fn reset_authority_for_tests() {
-    *authority_state()
-        .lock()
-        .expect("test authority mutex is not poisoned") = None;
-}
-
 /// An opaque, authority-sealed result.  Its receipt and transaction remain
 /// private to Sema until the atomic persistence owner consumes the stage.
 #[derive(Clone)]
 pub struct AuthorizedBootstrap {
     canonical_source: String,
+    name_view: AuthorityNameView,
+    reader: BootstrapReader<SemaNamingAuthority>,
     transaction: PreparedBootstrapTransaction<SemaNamingAuthority>,
 }
 
@@ -283,6 +258,72 @@ impl AuthorizedBootstrap {
     /// Canonical source projection after receipt validation.
     pub fn canonical_source(&self) -> &str {
         &self.canonical_source
+    }
+
+    /// Sealed textual projection for identities already issued in this result.
+    pub fn name_view(&self) -> &AuthorityNameView {
+        &self.name_view
+    }
+
+    /// Reader that validates this authority-branded prepared transaction.
+    pub fn reader(&self) -> &BootstrapReader<SemaNamingAuthority> {
+        &self.reader
+    }
+
+    /// Prepared transaction created and sealed by Sema authority only.
+    pub fn transaction(&self) -> &PreparedBootstrapTransaction<SemaNamingAuthority> {
+        &self.transaction
+    }
+}
+
+/// Read-only `EncodedName` to textual-metadata projection carried by a sealed
+/// authority result. Its records are created exclusively from the authority's
+/// canonical textual metadata; callers cannot add or replace associations.
+#[derive(Clone)]
+pub struct AuthorityNameView {
+    metadata: BTreeMap<EncodedName, TextualMetadata>,
+}
+
+impl AuthorityNameView {
+    fn from_snapshot(snapshot: &TextualMetadataSnapshot, placement: &SourcePlacement) -> Self {
+        let metadata = snapshot
+            .records()
+            .iter()
+            .map(|record| {
+                let file_path = if record.address.module_path == ["builtin".to_owned()] {
+                    vec!["builtin".to_owned()]
+                } else {
+                    placement.file_path().to_vec()
+                };
+                (
+                    record.encoded_name,
+                    TextualMetadata::new(
+                        record.address.textual_name.clone(),
+                        ModulePlacement::new(record.address.module_path.clone()),
+                        FilePlacement::new(file_path),
+                    ),
+                )
+            })
+            .collect();
+        Self { metadata }
+    }
+}
+
+impl NameView for AuthorityNameView {
+    fn association(&self, _encoded_name: &EncodedName) -> Option<&NameAssociation> {
+        None
+    }
+
+    fn textual_metadata(&self, encoded_name: &EncodedName) -> Option<&TextualMetadata> {
+        self.metadata.get(encoded_name)
+    }
+}
+
+impl EncodedNameResolver<BootstrapLanguage> for AuthorityNameView {
+    fn resolve(&self, encoded_name: &EncodedName) -> Option<&TextualName> {
+        self.metadata
+            .get(encoded_name)
+            .map(TextualMetadata::textual_name)
     }
 }
 
@@ -403,17 +444,19 @@ impl SeedAuthorityState {
 }
 
 #[derive(Clone)]
-struct SemaNamingAuthority {
+pub struct SemaNamingAuthority {
     before: TextualMetadataSnapshot,
     after: Option<TextualMetadataSnapshot>,
     new_canonical_bytes: BTreeMap<EncodedName, Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct AuthorityProof;
+pub struct AuthorityProof {
+    private: (),
+}
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct AuthorityReceipt(PreparedBootstrapDraft);
+pub struct AuthorityReceipt(PreparedBootstrapDraft);
 
 impl SemaNamingAuthority {
     fn unconfigured(before: TextualMetadataSnapshot) -> Self {
@@ -437,7 +480,7 @@ impl SemaNamingAuthority {
     }
 
     fn proof(&self) -> AuthorityProof {
-        AuthorityProof
+        AuthorityProof { private: () }
     }
 
     fn approves(&self, draft: &PreparedBootstrapDraft) -> bool {
@@ -573,7 +616,4 @@ pub enum BootstrapAssemblyError {
     /// The second reader plan differed from the allocation-free first plan.
     #[error("the source plan changed while the authority was assembling it")]
     PlanChangedDuringAuthorityAssembly,
-    /// The Sema-owned authority state was poisoned by an earlier panic.
-    #[error("the Sema-owned bootstrap authority state is unavailable")]
-    AuthorityStatePoisoned,
 }

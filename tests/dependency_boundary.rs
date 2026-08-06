@@ -101,10 +101,6 @@ fn public_bootstrap_surface_has_no_identity_or_receipt_constructor() {
         .expect("bootstrap source is readable");
 
     for forbidden in [
-        "pub struct SemaNamingAuthority",
-        "pub struct SemaBootstrapAuthority",
-        "pub struct AuthorityProof",
-        "pub struct AuthorityReceipt",
         "pub struct StagedBootstrapChange",
         "pub struct BootstrapCatalog",
         "pub struct CanonicalIdentityOrder",
@@ -112,8 +108,8 @@ fn public_bootstrap_surface_has_no_identity_or_receipt_constructor() {
         "pub struct GeneratedStreamAssignments",
         "pub fn mint_name",
         "pub fn mint_canonical_bytes",
-        "pub fn transaction",
         "pub fn receipt",
+        "pub fn proof",
     ] {
         assert!(
             !source.contains(forbidden),

@@ -1,6 +1,4 @@
-use crate::bootstrap::{
-    BootstrapAssemblyError, SourcePlacement, authorize_bootstrap, reset_authority_for_tests,
-};
+use crate::bootstrap::{BootstrapAssemblyError, SemaBootstrapAuthority, SourcePlacement};
 use core_ethos::bootstrap::BootstrapReadError;
 
 const SOURCE: &str = "Interface.{1 0 0}\n[]\n{\n  []\n  []\n  []\n  [Domain.[All Health.HealthDomain] HealthDomain.[Body]]\n}\n";
@@ -15,10 +13,12 @@ fn placement() -> SourcePlacement {
 
 #[test]
 fn source_and_placement_are_the_entire_caller_input_and_replay_does_not_remint() {
-    reset_authority_for_tests();
-    let first = authorize_bootstrap(SOURCE, placement())
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
+    let first = authority
+        .authorize(SOURCE, placement())
         .expect("authority mints and seals source-local declarations");
-    let replay = authorize_bootstrap(SOURCE, placement())
+    let replay = authority
+        .authorize(SOURCE, placement())
         .expect("the realized result replays without another allocation");
 
     assert_eq!(first.canonical_source(), replay.canonical_source());
@@ -27,21 +27,25 @@ fn source_and_placement_are_the_entire_caller_input_and_replay_does_not_remint()
 
 #[test]
 fn bundled_stream_is_refused_before_any_authority_stage_is_created() {
-    reset_authority_for_tests();
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
     assert!(matches!(
-        authorize_bootstrap(STREAM_SOURCE, placement()),
+        authority.authorize(STREAM_SOURCE, placement()),
         Err(BootstrapAssemblyError::Read(
             BootstrapReadError::BundledStreamUnsupported
         ))
     ));
-    authorize_bootstrap(SOURCE, placement())
+    authority
+        .authorize(SOURCE, placement())
         .expect("the earlier Stream refusal did not consume a staged authority change");
 }
 
 #[test]
 fn distinct_sources_receive_private_stages_without_an_atomic_commit() {
-    reset_authority_for_tests();
-    authorize_bootstrap(SOURCE, placement()).expect("initial private stage");
-    authorize_bootstrap("Interface.{1 0 0}\n[]\n{[] [] [] []}", placement())
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
+    authority
+        .authorize(SOURCE, placement())
+        .expect("initial private stage");
+    authority
+        .authorize("Interface.{1 0 0}\n[]\n{[] [] [] []}", placement())
         .expect("a distinct source gets its own private stage");
 }
