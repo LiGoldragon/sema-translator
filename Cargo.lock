@@ -93,16 +93,6 @@ checksum = "3d52eff69cd5e647efe296129160853a42795992097e8af39800e1060caeea9b"
 
 [[package]]
 name = "content-identity"
-version = "0.3.0"
-source = "git+https://github.com/LiGoldragon/content-identity.git?rev=24b43bae5d9748b0e7f679c6ec9f85a643c4d36a#24b43bae5d9748b0e7f679c6ec9f85a643c4d36a"
-dependencies = [
- "blake3",
- "rkyv",
- "thiserror",
-]
-
-[[package]]
-name = "content-identity"
 version = "0.5.0"
 source = "git+https://github.com/LiGoldragon/content-identity.git?rev=896b21e17f31b66d0802bff899b4b60acea9c0f1#896b21e17f31b66d0802bff899b4b60acea9c0f1"
 dependencies = [
@@ -112,9 +102,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "content-identity"
+version = "0.6.0"
+source = "git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410#7f005b3b73ae141d11b9723ab38e69c9d4859410"
+dependencies = [
+ "blake3",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
 name = "core-ethos"
-version = "0.29.1"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=43b48c779c54ee9f05cbcc111d5d88074b162461#43b48c779c54ee9f05cbcc111d5d88074b162461"
+version = "0.30.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=e6827c47ef254a4061a9d1a16b4b780673dc5d83#e6827c47ef254a4061a9d1a16b4b780673dc5d83"
 dependencies = [
  "name-table",
  "raw-discovery",
@@ -348,10 +348,10 @@ dependencies = [
 
 [[package]]
 name = "raw-discovery"
-version = "0.4.0"
-source = "git+https://github.com/LiGoldragon/raw-discovery.git?rev=2d4e2e00f2821c4e2893fa96028cef0ac76e9644#2d4e2e00f2821c4e2893fa96028cef0ac76e9644"
+version = "0.5.0"
+source = "git+https://github.com/LiGoldragon/raw-discovery.git?rev=25c2003ca02c5c2a7047ccd5629abfb698a90459#25c2003ca02c5c2a7047ccd5629abfb698a90459"
 dependencies = [
- "content-identity 0.3.0",
+ "content-identity 0.6.0",
  "rkyv",
  "thiserror",
 ]
@@ -416,7 +416,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "sema-translator"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "core-ethos",
  "name-table",
@@ -480,10 +480,10 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 
 [[package]]
 name = "structural-codec"
-version = "0.20.0"
-source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=879d76f91facedd6d5cbca79e282260e1beb9478#879d76f91facedd6d5cbca79e282260e1beb9478"
+version = "0.22.0"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=70ef879bc99eb247b7661169794ee189d45c62ff#70ef879bc99eb247b7661169794ee189d45c62ff"
 dependencies = [
- "content-identity 0.3.0",
+ "content-identity 0.6.0",
  "name-table",
  "raw-discovery",
  "rkyv",

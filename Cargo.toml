@@ -1,6 +1,6 @@
 [package]
 name = "sema-translator"
-version = "0.10.0"
+version = "0.11.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -24,10 +24,10 @@ bootstrap = [
 ]
 
 [dependencies]
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "43b48c779c54ee9f05cbcc111d5d88074b162461", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "e6827c47ef254a4061a9d1a16b4b780673dc5d83", optional = true }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d", optional = true }
 signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3f41813dd63904c7e2b3da4382eff64ed1bf12fe", optional = true }
-structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "879d76f91facedd6d5cbca79e282260e1beb9478", optional = true }
+structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "70ef879bc99eb247b7661169794ee189d45c62ff", optional = true }
 thiserror = { version = "2", optional = true }
 
 [dev-dependencies]
