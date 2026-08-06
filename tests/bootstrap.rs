@@ -39,11 +39,9 @@ fn bundled_stream_is_refused_before_any_authority_stage_is_created() {
 }
 
 #[test]
-fn distinct_input_cannot_overtake_a_staged_change() {
+fn distinct_sources_receive_private_stages_without_an_atomic_commit() {
     reset_authority_for_tests();
-    authorize_bootstrap(SOURCE, placement()).expect("initial stage");
-    assert!(matches!(
-        authorize_bootstrap("Interface.{1 0 0}\n[]\n{[] [] [] []}", placement()),
-        Err(BootstrapAssemblyError::PendingStagedChange)
-    ));
+    authorize_bootstrap(SOURCE, placement()).expect("initial private stage");
+    authorize_bootstrap("Interface.{1 0 0}\n[]\n{[] [] [] []}", placement())
+        .expect("a distinct source gets its own private stage");
 }

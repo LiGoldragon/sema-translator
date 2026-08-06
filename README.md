@@ -7,7 +7,8 @@ Sema privately owns the authority instance, mints opaque `EncodedName` values
 with a CSPRNG, derives the direct
 `TrueName` of every strict declaration value, and stages canonical textual
 metadata plus the authority receipt. Replaying an already realized request does
-not mint again; a distinct request waits for the later atomic persistence owner.
+not mint again; distinct requests receive private stages that hqu.30 will later
+install atomically.
 Bundled/generated Stream declarations are refused during planning, before any
 identity allocation or stage is created.
 

@@ -61,7 +61,7 @@ struct SemaBootstrapAuthority {
     seed: SeedAuthorityState,
     used_names: BTreeSet<EncodedName>,
     used_canonical_bytes: BTreeSet<Vec<u8>>,
-    staged: Option<StagedBootstrapChange>,
+    staged: BTreeMap<SourceRequest, StagedBootstrapChange>,
     replays: BTreeMap<SourceRequest, AuthorizedBootstrap>,
 }
 
@@ -80,7 +80,7 @@ impl SemaBootstrapAuthority {
             seed,
             used_names,
             used_canonical_bytes,
-            staged: None,
+            staged: BTreeMap::new(),
             replays: BTreeMap::new(),
         })
     }
@@ -88,8 +88,8 @@ impl SemaBootstrapAuthority {
     /// Plan, mint, seal, and stage one source-plus-placement request.
     ///
     /// Repeating an already realized request returns its exact realized
-    /// authority result without minting.  A distinct request is refused while
-    /// the prior result awaits the later atomic persistence boundary.
+    /// authority result without minting. Distinct requests receive independent
+    /// private stages; hqu.30 later owns their atomic durable installation.
     pub fn authorize(
         &mut self,
         source: &str,
@@ -102,10 +102,6 @@ impl SemaBootstrapAuthority {
         if let Some(realized) = self.replays.get(&request) {
             return Ok(realized.clone());
         }
-        if self.staged.is_some() {
-            return Err(BootstrapAssemblyError::PendingStagedChange);
-        }
-
         let catalog = self.seed.catalog_for(&request.placement)?;
         let planning_reader = BootstrapReader::build(
             self.grammar.clone(),
@@ -145,7 +141,7 @@ impl SemaBootstrapAuthority {
             receipt: result.transaction.clone(),
         };
         debug_assert!(stage.is_consistent());
-        self.staged = Some(stage);
+        self.staged.insert(request.clone(), stage);
         self.replays.insert(request, result.clone());
         Ok(result)
     }
@@ -577,11 +573,6 @@ pub enum BootstrapAssemblyError {
     /// The second reader plan differed from the allocation-free first plan.
     #[error("the source plan changed while the authority was assembling it")]
     PlanChangedDuringAuthorityAssembly,
-    /// A different source cannot overtake a staged result before atomic persistence.
-    #[error(
-        "a bootstrap change is already staged; persist or replay it before authorizing another source"
-    )]
-    PendingStagedChange,
     /// The Sema-owned authority state was poisoned by an earlier panic.
     #[error("the Sema-owned bootstrap authority state is unavailable")]
     AuthorityStatePoisoned,
