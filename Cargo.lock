@@ -113,8 +113,8 @@ dependencies = [
 
 [[package]]
 name = "core-ethos"
-version = "0.28.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=249ed6ac5b8a3a84fee5884bcb35b929f07e9166#249ed6ac5b8a3a84fee5884bcb35b929f07e9166"
+version = "0.29.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=427fd74a8217f557cfabdfe0ff23b784c855bf85#427fd74a8217f557cfabdfe0ff23b784c855bf85"
 dependencies = [
  "name-table",
  "raw-discovery",
@@ -459,7 +459,7 @@ dependencies = [
 
 [[package]]
 name = "sema-translator"
-version = "0.6.0"
+version = "0.7.0"
 dependencies = [
  "blake3",
  "core-ethos",
@@ -568,8 +568,8 @@ dependencies = [
 
 [[package]]
 name = "structural-codec"
-version = "0.19.0"
-source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=413e3744569ca237e837a1fd57d9ba6ad6adc3de#413e3744569ca237e837a1fd57d9ba6ad6adc3de"
+version = "0.20.0"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=879d76f91facedd6d5cbca79e282260e1beb9478#879d76f91facedd6d5cbca79e282260e1beb9478"
 dependencies = [
  "content-identity 0.3.0",
  "name-table",

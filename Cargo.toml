@@ -1,6 +1,6 @@
 [package]
 name = "sema-translator"
-version = "0.6.0"
+version = "0.7.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -39,13 +39,13 @@ runtime = [
 
 [dependencies]
 blake3 = { version = "1", optional = true }
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "249ed6ac5b8a3a84fee5884bcb35b929f07e9166", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "427fd74a8217f557cfabdfe0ff23b784c855bf85", optional = true }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d", optional = true }
 rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"], optional = true }
 sema-engine = { git = "https://github.com/LiGoldragon/sema-engine.git", rev = "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3", optional = true }
 signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "0786fbe8caf27552afcdd5deb85bc82ec6088337", default-features = false, optional = true }
 signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3a26cb43f8ce7f9fe85da64d19aa55aa662943ce", optional = true }
-structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "413e3744569ca237e837a1fd57d9ba6ad6adc3de", optional = true }
+structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "879d76f91facedd6d5cbca79e282260e1beb9478", optional = true }
 thiserror = { version = "2", optional = true }
 tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"], optional = true }
 
