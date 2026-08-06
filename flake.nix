@@ -18,7 +18,11 @@
         inherit (rust) craneLib toolchain;
         src = rust.cleanSource { root = ./.; };
         commonArguments = { inherit src; strictDeps = true; };
+        bootstrapArguments = commonArguments // {
+          cargoExtraArgs = "--no-default-features --features bootstrap";
+        };
         cargoArtifacts = craneLib.buildDepsOnly commonArguments;
+        bootstrapCargoArtifacts = craneLib.buildDepsOnly bootstrapArguments;
       in
       {
         packages.default = craneLib.buildPackage (commonArguments // {
@@ -34,6 +38,10 @@
           process = craneLib.cargoTest (commonArguments // {
             inherit cargoArtifacts;
             cargoTestExtraArgs = "--test process";
+          });
+          bootstrap = craneLib.cargoTest (bootstrapArguments // {
+            cargoArtifacts = bootstrapCargoArtifacts;
+            cargoTestExtraArgs = "--test bootstrap --test dependency_boundary";
           });
           doc = craneLib.cargoDoc (commonArguments // {
             inherit cargoArtifacts;

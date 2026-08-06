@@ -1,6 +1,6 @@
 [package]
 name = "sema-translator"
-version = "0.5.0"
+version = "0.6.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
@@ -15,18 +15,39 @@ path = "src/lib.rs"
 [[bin]]
 name = "sema-translator-daemon"
 path = "src/bin/sema-translator-daemon.rs"
+required-features = ["runtime"]
+
+[features]
+default = ["bootstrap", "runtime"]
+bootstrap = [
+  "dep:core-ethos",
+  "dep:name-table",
+  "dep:signal-sema-translator",
+  "dep:structural-codec",
+  "dep:thiserror",
+]
+runtime = [
+  "dep:blake3",
+  "dep:name-table",
+  "dep:rkyv",
+  "dep:sema-engine",
+  "dep:signal-frame",
+  "dep:signal-sema-translator",
+  "dep:thiserror",
+  "dep:tokio",
+]
 
 [dependencies]
-blake3 = "1"
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "c84541d0dc94b31fd1021e187b56b121d9dab482" }
-name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d" }
-rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"] }
-sema-engine = { git = "https://github.com/LiGoldragon/sema-engine.git", rev = "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3" }
-signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "0786fbe8caf27552afcdd5deb85bc82ec6088337", default-features = false }
-signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3a26cb43f8ce7f9fe85da64d19aa55aa662943ce" }
-structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "413e3744569ca237e837a1fd57d9ba6ad6adc3de" }
-thiserror = "2"
-tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }
+blake3 = { version = "1", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "7a1384874f3747de97c6ccbb4ae6fa2149b27330", optional = true }
+name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "a22f48d8040ab9235f3552ad8654ff8e27b8157d", optional = true }
+rkyv = { version = "0.8", default-features = false, features = ["std", "bytecheck", "little_endian", "pointer_width_32", "unaligned"], optional = true }
+sema-engine = { git = "https://github.com/LiGoldragon/sema-engine.git", rev = "94d2f7ee7b81d0bf3b6f1a111f6bbbc398c0e7a3", optional = true }
+signal-frame = { git = "https://github.com/LiGoldragon/signal-frame.git", rev = "0786fbe8caf27552afcdd5deb85bc82ec6088337", default-features = false, optional = true }
+signal-sema-translator = { git = "https://github.com/LiGoldragon/signal-sema-translator.git", rev = "3a26cb43f8ce7f9fe85da64d19aa55aa662943ce", optional = true }
+structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "413e3744569ca237e837a1fd57d9ba6ad6adc3de", optional = true }
+thiserror = { version = "2", optional = true }
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"], optional = true }
 
 [dev-dependencies]
 tempfile = "3"

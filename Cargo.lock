@@ -113,8 +113,8 @@ dependencies = [
 
 [[package]]
 name = "core-ethos"
-version = "0.27.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=c84541d0dc94b31fd1021e187b56b121d9dab482#c84541d0dc94b31fd1021e187b56b121d9dab482"
+version = "0.28.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=7a1384874f3747de97c6ccbb4ae6fa2149b27330#7a1384874f3747de97c6ccbb4ae6fa2149b27330"
 dependencies = [
  "content-identity 0.3.0",
  "content-identity 0.5.0",
@@ -482,7 +482,7 @@ dependencies = [
 
 [[package]]
 name = "sema-translator"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "blake3",
  "core-ethos",
