@@ -1,5 +1,9 @@
 use std::collections::BTreeMap;
 
+use crate::bootstrap::{
+    AuthorizedBootstrapTransition, AuthorizedStreamSeats, BootstrapAssemblyError,
+    BootstrapAuthorityIdentity, BootstrapAuthorityRevision, BootstrapTransactionAssembler,
+};
 use core_ethos::bootstrap::{
     BootstrapCatalog, BootstrapGrammarIdentities, BootstrapPriorIdentities,
     BootstrapPriorVocabulary, BootstrapReadError, BootstrapVersionPolicy, CanonicalIdentityOrder,
@@ -8,10 +12,6 @@ use core_ethos::bootstrap::{
     TextualProjectionAddress,
 };
 use name_table::{LocalEncodedId, Name};
-use sema_translator::bootstrap::{
-    AuthorizedBootstrapTransition, AuthorizedStreamSeats, BootstrapAssemblyError,
-    BootstrapAuthorityIdentity, BootstrapAuthorityRevision, BootstrapTransactionAssembler,
-};
 use signal_sema_translator::{VocabularyEncodedId, VocabularyRoot};
 use structural_codec::EncodedNameResolver;
 
@@ -207,8 +207,6 @@ fn production_boundary_seals_exact_approval_and_releases_resolver_after_validati
         assembly.resolver().resolve(&id(100)),
         Some(&Name::new("Domain"))
     );
-    assert_eq!(assembly.resolver().authority().bytes(), [0x51; 32]);
-    assert_eq!(assembly.resolver().revision().value(), 7);
     assert!(
         assembly
             .transaction()

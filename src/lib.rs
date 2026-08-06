@@ -6,3 +6,7 @@
 
 #[cfg(feature = "bootstrap")]
 pub mod bootstrap;
+
+#[cfg(all(test, feature = "bootstrap"))]
+#[path = "../tests/bootstrap.rs"]
+mod bootstrap_tests;

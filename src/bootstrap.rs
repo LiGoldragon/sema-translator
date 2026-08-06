@@ -31,33 +31,23 @@ fn rust_identity(local: u16) -> VocabularyEncodedId {
 
 /// Durable identity of one configured naming authority.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct BootstrapAuthorityIdentity([u8; 32]);
+pub(crate) struct BootstrapAuthorityIdentity([u8; 32]);
 
 impl BootstrapAuthorityIdentity {
     /// Wrap authority-owned identity bytes without interpreting their anatomy.
-    pub const fn new(bytes: [u8; 32]) -> Self {
+    pub(crate) const fn new(bytes: [u8; 32]) -> Self {
         Self(bytes)
-    }
-
-    /// Authority-owned identity bytes.
-    pub const fn bytes(self) -> [u8; 32] {
-        self.0
     }
 }
 
 /// Monotonic revision of an authority-approved bootstrap transition.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct BootstrapAuthorityRevision(u64);
+pub(crate) struct BootstrapAuthorityRevision(u64);
 
 impl BootstrapAuthorityRevision {
     /// Construct an explicit authority revision.
-    pub const fn new(value: u64) -> Self {
+    pub(crate) const fn new(value: u64) -> Self {
         Self(value)
-    }
-
-    /// Stored revision number.
-    pub const fn value(self) -> u64 {
-        self.0
     }
 }
 
@@ -145,28 +135,21 @@ impl EncodedNameResolver<VocabularyRoot> for SealedRustVocabulary {
 
 /// The two authority-supplied identities generated for one authored Stream.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AuthorizedStreamSeats {
+pub(crate) struct AuthorizedStreamSeats {
     initiation: VocabularyEncodedId,
     termination: VocabularyEncodedId,
 }
 
 impl AuthorizedStreamSeats {
     /// Record exact already-minted initiation and termination identities.
-    pub const fn new(initiation: VocabularyEncodedId, termination: VocabularyEncodedId) -> Self {
+    pub(crate) const fn new(
+        initiation: VocabularyEncodedId,
+        termination: VocabularyEncodedId,
+    ) -> Self {
         Self {
             initiation,
             termination,
         }
-    }
-
-    /// Exact initiation identity.
-    pub const fn initiation(&self) -> &VocabularyEncodedId {
-        &self.initiation
-    }
-
-    /// Exact termination identity.
-    pub const fn termination(&self) -> &VocabularyEncodedId {
-        &self.termination
     }
 }
 
@@ -176,7 +159,7 @@ impl AuthorizedStreamSeats {
 /// the authority. Its values are their authority-owned canonical projections;
 /// no source byte participates in either identity or ordering.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct AuthorizedBootstrapTransition {
+pub(crate) struct AuthorizedBootstrapTransition {
     after: TextualMetadataSnapshot,
     new_identity_canonical_bytes: BTreeMap<VocabularyEncodedId, Vec<u8>>,
     generated_streams: BTreeMap<VocabularyEncodedId, AuthorizedStreamSeats>,
@@ -185,7 +168,7 @@ pub struct AuthorizedBootstrapTransition {
 impl AuthorizedBootstrapTransition {
     /// Construct one explicit approval. Exactness is checked against the source
     /// plan during assembly, so unused or missing authority seats are refused.
-    pub fn new(
+    pub(crate) fn new(
         after: TextualMetadataSnapshot,
         new_identity_canonical_bytes: BTreeMap<VocabularyEncodedId, Vec<u8>>,
         generated_streams: BTreeMap<VocabularyEncodedId, AuthorizedStreamSeats>,
@@ -196,21 +179,77 @@ impl AuthorizedBootstrapTransition {
             generated_streams,
         }
     }
+}
 
-    /// Authority-approved after snapshot.
-    pub const fn after(&self) -> &TextualMetadataSnapshot {
-        &self.after
-    }
+/// Component-declared bootstrap metadata submitted to the naming authority.
+///
+/// This is intentionally only bootstrap configuration: it carries no proof,
+/// receipt, sealed vocabulary, or prepared transaction. The authority owns the
+/// conversion from these declarations into all authority-bearing values.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct BootstrapAuthorityContract {
+    authority_identity: [u8; 32],
+    revision: u64,
+    grammar: BootstrapGrammarIdentities,
+    initial_catalog: BootstrapCatalog,
+    approved_metadata: TextualMetadataSnapshot,
+    canonical_identities: BTreeMap<VocabularyEncodedId, Vec<u8>>,
+    generated_stream_identities:
+        BTreeMap<VocabularyEncodedId, (VocabularyEncodedId, VocabularyEncodedId)>,
+}
 
-    /// Canonical bytes for exactly the approved new identities.
-    pub const fn new_identity_canonical_bytes(&self) -> &BTreeMap<VocabularyEncodedId, Vec<u8>> {
-        &self.new_identity_canonical_bytes
+impl BootstrapAuthorityContract {
+    /// State the component-owned metadata for one bootstrap authorization.
+    pub fn new(
+        authority_identity: [u8; 32],
+        revision: u64,
+        grammar: BootstrapGrammarIdentities,
+        initial_catalog: BootstrapCatalog,
+        approved_metadata: TextualMetadataSnapshot,
+        canonical_identities: BTreeMap<VocabularyEncodedId, Vec<u8>>,
+        generated_stream_identities: BTreeMap<
+            VocabularyEncodedId,
+            (VocabularyEncodedId, VocabularyEncodedId),
+        >,
+    ) -> Self {
+        Self {
+            authority_identity,
+            revision,
+            grammar,
+            initial_catalog,
+            approved_metadata,
+            canonical_identities,
+            generated_stream_identities,
+        }
     }
+}
 
-    /// Generated Stream seats keyed by the authored Stream output identity.
-    pub const fn generated_streams(&self) -> &BTreeMap<VocabularyEncodedId, AuthorizedStreamSeats> {
-        &self.generated_streams
-    }
+/// Authorize one source from component-declared bootstrap metadata.
+///
+/// The conversion to proofs, receipts, transition seats, and the opaque
+/// [`AuthorizedBootstrap`] happens only in this authority owner.
+pub fn authorize_bootstrap(
+    source: &str,
+    contract: BootstrapAuthorityContract,
+) -> Result<AuthorizedBootstrap, BootstrapAssemblyError> {
+    let transition = AuthorizedBootstrapTransition::new(
+        contract.approved_metadata,
+        contract.canonical_identities,
+        contract
+            .generated_stream_identities
+            .into_iter()
+            .map(|(output, (initiation, termination))| {
+                (output, AuthorizedStreamSeats::new(initiation, termination))
+            })
+            .collect(),
+    );
+    BootstrapTransactionAssembler::new(
+        BootstrapAuthorityIdentity::new(contract.authority_identity),
+        BootstrapAuthorityRevision::new(contract.revision),
+        contract.grammar,
+        contract.initial_catalog,
+    )
+    .assemble(source, transition)
 }
 
 /// Proof object created only by the configured production assembler.
@@ -226,18 +265,6 @@ pub struct SemaBootstrapAuthorityReceipt {
     authority: BootstrapAuthorityIdentity,
     revision: BootstrapAuthorityRevision,
     draft: PreparedBootstrapDraft,
-}
-
-impl SemaBootstrapAuthorityReceipt {
-    /// Authority that authenticated this exact draft.
-    pub const fn authority(&self) -> BootstrapAuthorityIdentity {
-        self.authority
-    }
-
-    /// Authority transition revision that authenticated this exact draft.
-    pub const fn revision(&self) -> BootstrapAuthorityRevision {
-        self.revision
-    }
 }
 
 /// Naming authority injected into the strict bootstrap reader.
@@ -330,20 +357,16 @@ impl BootstrapNamingAuthority for SemaBootstrapNamingAuthority {
 /// Read-only name projection available only after transaction validation.
 #[derive(Clone, Debug)]
 pub struct VerifiedBootstrapResolver {
-    authority: BootstrapAuthorityIdentity,
-    revision: BootstrapAuthorityRevision,
     names: BTreeMap<VocabularyEncodedId, Name>,
 }
 
 impl VerifiedBootstrapResolver {
     fn from_validated(
-        authority: BootstrapAuthorityIdentity,
-        revision: BootstrapAuthorityRevision,
+        _authority: BootstrapAuthorityIdentity,
+        _revision: BootstrapAuthorityRevision,
         snapshot: &TextualMetadataSnapshot,
     ) -> Self {
         Self {
-            authority,
-            revision,
             names: snapshot
                 .records()
                 .iter()
@@ -355,16 +378,6 @@ impl VerifiedBootstrapResolver {
                 })
                 .collect(),
         }
-    }
-
-    /// Authority whose validated receipt enabled this resolver.
-    pub const fn authority(&self) -> BootstrapAuthorityIdentity {
-        self.authority
-    }
-
-    /// Validated transition revision represented by this resolver.
-    pub const fn revision(&self) -> BootstrapAuthorityRevision {
-        self.revision
     }
 }
 
@@ -410,7 +423,7 @@ impl AuthorizedBootstrap {
 
 /// Production assembler configured with existing authority state.
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BootstrapTransactionAssembler {
+pub(crate) struct BootstrapTransactionAssembler {
     authority: BootstrapAuthorityIdentity,
     revision: BootstrapAuthorityRevision,
     grammar: BootstrapGrammarIdentities,
@@ -419,7 +432,7 @@ pub struct BootstrapTransactionAssembler {
 
 impl BootstrapTransactionAssembler {
     /// Seat the exact reader configuration and authority revision.
-    pub const fn new(
+    pub(crate) const fn new(
         authority: BootstrapAuthorityIdentity,
         revision: BootstrapAuthorityRevision,
         grammar: BootstrapGrammarIdentities,
@@ -435,7 +448,7 @@ impl BootstrapTransactionAssembler {
 
     /// Plan source, match every declaration to an approved opaque seat, seal
     /// the exact transaction, revalidate its receipt, and expose its resolver.
-    pub fn assemble(
+    pub(crate) fn assemble(
         &self,
         source: &str,
         approval: AuthorizedBootstrapTransition,

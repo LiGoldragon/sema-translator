@@ -1,12 +1,13 @@
 [package]
 name = "sema-translator"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2024"
 rust-version = "1.89"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/LiGoldragon/sema-translator"
 description = "Authority-approved bootstrap translator for strict Ethos assembly"
 publish = false
+autotests = false
 
 [lib]
 name = "sema_translator"
@@ -31,6 +32,10 @@ thiserror = { version = "2", optional = true }
 
 [dev-dependencies]
 tempfile = "3"
+
+[[test]]
+name = "dependency_boundary"
+path = "tests/dependency_boundary.rs"
 
 [lints.rust]
 unsafe_code = "forbid"
