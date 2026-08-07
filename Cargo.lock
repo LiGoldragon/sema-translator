@@ -113,14 +113,14 @@ dependencies = [
 
 [[package]]
 name = "core-ethos"
-version = "0.30.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=d9cd87095cce#d9cd87095cce966078a741824e66cdd91747e89e"
+version = "0.31.0"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=9fb2ba6f4afe#9fb2ba6f4afebf55932b4b85e7620b54776315cb"
 dependencies = [
  "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=df1d25c7cd9e822ae03255e04ede59a00b78480b)",
  "name-table",
- "raw-discovery",
+ "raw-discovery 0.5.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=4112dad7728cbc531eb3f82ad902a0a030ffe85c)",
  "rkyv",
- "structural-codec 0.22.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=a3ff4dd1ff34)",
+ "structural-codec 0.22.0 (git+https://github.com/LiGoldragon/structural-codec.git?rev=5629c7b67f30)",
  "thiserror",
 ]
 
@@ -359,6 +359,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "raw-discovery"
+version = "0.5.0"
+source = "git+https://github.com/LiGoldragon/raw-discovery.git?rev=4112dad7728cbc531eb3f82ad902a0a030ffe85c#4112dad7728cbc531eb3f82ad902a0a030ffe85c"
+dependencies = [
+ "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410)",
+ "rkyv",
+ "thiserror",
+]
+
+[[package]]
 name = "rend"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -450,11 +460,11 @@ checksum = "0c790de23124f9ab44544d7ac05d60440adc586479ce501c1d6d7da3cd8c9cf5"
 [[package]]
 name = "structural-codec"
 version = "0.22.0"
-source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=a3ff4dd1ff34#a3ff4dd1ff34195ade3ac557a15387fe8d2e202b"
+source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=5629c7b67f30#5629c7b67f30df454af5f359cac497ebe5e8a1e9"
 dependencies = [
  "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410)",
  "name-table",
- "raw-discovery",
+ "raw-discovery 0.5.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=4112dad7728cbc531eb3f82ad902a0a030ffe85c)",
  "rkyv",
  "thiserror",
 ]
@@ -466,7 +476,7 @@ source = "git+https://github.com/LiGoldragon/structural-codec.git?rev=fd3b3bebfe
 dependencies = [
  "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=7f005b3b73ae141d11b9723ab38e69c9d4859410)",
  "name-table",
- "raw-discovery",
+ "raw-discovery 0.5.0 (git+https://github.com/LiGoldragon/raw-discovery.git?rev=25c2003ca02c5c2a7047ccd5629abfb698a90459)",
  "rkyv",
  "thiserror",
 ]

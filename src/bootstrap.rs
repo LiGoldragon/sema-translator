@@ -8,15 +8,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use core_ethos::bootstrap::{
-    BootstrapBuildError, BootstrapCatalog, BootstrapGrammarIdentities, BootstrapNamingAuthority,
+    AdmittedToCoreEthosRawConstruction, BootstrapBuildError, BootstrapCatalog,
+    BootstrapCatalogMetadata, BootstrapGrammarIdentities, BootstrapNamingAuthority,
     BootstrapNamingAuthorityRequest, BootstrapPriorIdentities, BootstrapPriorSlot,
     BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan, BootstrapReader,
     BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder, DeclarationOccurrence,
-    EthosVersion, IdentityDisposition, IdentitySchema,
-    IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
-    PreparedBootstrapDraft, PreparedBootstrapTransaction, TextualMetadataRecord,
-    TextualMetadataSnapshot, TextualMetadataTransition, TextualProjectionAddress,
-    bootstrap_prior_definitions,
+    EthosVersion, IdentityDisposition, IdentitySchema, IdentitySchemaCatalog, NamingAssignments,
+    PlannedScope, PreparedBootstrapDraft, PreparedBootstrapTransaction, SemaTransactionAssembler,
+    TextualMetadataRecord, TextualMetadataSnapshot, TextualMetadataTransition,
+    TextualProjectionAddress, bootstrap_prior_definitions,
 };
 use name_table::{
     EncodedName, FilePlacement, ModulePlacement, NameAssociation, NameView, TextualMetadata,
@@ -60,6 +60,7 @@ impl SourcePlacement {
 /// accepting caller-selected names, proofs, receipts, canonical bytes, seats,
 /// catalogs, or preassembled transactions.
 pub struct SemaBootstrapAuthority {
+    assembler: SemaTransactionAssembler,
     grammar: BootstrapGrammarIdentities,
     seed: SeedAuthorityState,
     used_names: BTreeSet<EncodedName>,
@@ -77,12 +78,12 @@ impl SemaBootstrapAuthority {
     pub fn new() -> Result<Self, BootstrapAssemblyError> {
         let mut used_names = BTreeSet::new();
         let mut used_canonical_bytes = BTreeSet::new();
-        let grammar = BootstrapGrammarIdentities {
-            document: mint_name(&mut used_names)?,
-            syntax: mint_name(&mut used_names)?,
-        };
+        let assembler = SemaTransactionAssembler::new();
+        let grammar =
+            assembler.bootstrap_grammar(mint_name(&mut used_names)?, mint_name(&mut used_names)?);
         let seed = SeedAuthorityState::mint(&mut used_names, &mut used_canonical_bytes)?;
         Ok(Self {
+            assembler,
             grammar,
             seed,
             used_names,
@@ -109,8 +110,8 @@ impl SemaBootstrapAuthority {
         if let Some(realized) = self.replays.get(&request) {
             return Ok(realized.clone());
         }
-        let catalog = self.seed.catalog_for(&request.placement)?;
-        let planning_reader = BootstrapReader::build(
+        let catalog = self.seed.catalog_for(&self.assembler, &request.placement)?;
+        let planning_reader = self.assembler.bootstrap_reader(
             self.grammar.clone(),
             catalog.clone(),
             SemaNamingAuthority::unconfigured(catalog.metadata().clone()),
@@ -125,9 +126,11 @@ impl SemaBootstrapAuthority {
             allocation.new_canonical_bytes.clone(),
         );
         let proof = authority.proof();
-        let reader = BootstrapReader::build(self.grammar.clone(), catalog.clone(), authority)?;
+        let reader =
+            self.assembler
+                .bootstrap_reader(self.grammar.clone(), catalog.clone(), authority)?;
         let sealed_plan = reader.plan(&request.source)?;
-        let assignments = allocation.assignments_for(&sealed_plan)?;
+        let assignments = allocation.assignments_for(&sealed_plan, &self.assembler)?;
         let transaction = reader.seal(
             &sealed_plan,
             &assignments,
@@ -429,16 +432,18 @@ impl SeedAuthorityState {
 
     fn catalog_for(
         &self,
+        assembler: &SemaTransactionAssembler,
         placement: &SourcePlacement,
     ) -> Result<BootstrapCatalog, BootstrapAssemblyError> {
-        Ok(BootstrapCatalog::new(
-            placement.module_path().to_vec(),
-            self.metadata.clone(),
-            self.schemas.clone(),
-            self.priors.clone(),
-            BootstrapVersionPolicy::exact(EthosVersion::new(1, 0, 0)),
-            self.canonical_order.clone(),
-        )?)
+        assembler
+            .bootstrap_catalog(
+                placement.module_path().to_vec(),
+                BootstrapCatalogMetadata::new(self.metadata.clone(), self.schemas.clone()),
+                self.priors.clone(),
+                BootstrapVersionPolicy::exact(EthosVersion::new(1, 0, 0)),
+                self.canonical_order.clone(),
+            )
+            .map_err(BootstrapAssemblyError::from)
     }
 }
 
@@ -534,27 +539,29 @@ impl Allocation {
     fn assignments_for(
         &self,
         plan: &BootstrapReadPlan,
+        assembler: &SemaTransactionAssembler,
     ) -> Result<NamingAssignments, BootstrapAssemblyError> {
         if self.plan.len() != plan.declarations().len() {
             return Err(BootstrapAssemblyError::PlanChangedDuringAuthorityAssembly);
         }
-        NamingAssignments::new(
-            self.plan
-                .iter()
-                .zip(plan.declarations())
-                .map(|((planned, identity, disposition), declaration)| {
-                    if planned.ordinal() != declaration.occurrence().ordinal() {
-                        return Err(BootstrapAssemblyError::PlanChangedDuringAuthorityAssembly);
-                    }
-                    Ok(NamingAssignment {
-                        occurrence: declaration.occurrence(),
-                        encoded_name: *identity,
-                        disposition: disposition.clone(),
+        assembler
+            .naming_assignments(
+                self.plan
+                    .iter()
+                    .zip(plan.declarations())
+                    .map(|((planned, identity, disposition), declaration)| {
+                        if planned.ordinal() != declaration.occurrence().ordinal() {
+                            return Err(BootstrapAssemblyError::PlanChangedDuringAuthorityAssembly);
+                        }
+                        Ok(assembler.naming_assignment(
+                            declaration.occurrence(),
+                            *identity,
+                            disposition.clone(),
+                        ))
                     })
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-        )
-        .map_err(BootstrapAssemblyError::from)
+                    .collect::<Result<Vec<_>, _>>()?,
+            )
+            .map_err(BootstrapAssemblyError::from)
     }
 }
 
