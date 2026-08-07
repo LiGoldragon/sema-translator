@@ -255,8 +255,8 @@ impl SemaBootstrapAuthority {
                 None => {
                     if catalog.metadata().records().iter().any(|record| {
                         record.address.textual_name.as_str() == declaration.spelling()
-                            && (record.address.module_path != placement.module_path()
-                                || record.address.lexical_owner != owner)
+                            && record.address.module_path == placement.module_path()
+                            && record.address.lexical_owner != owner
                     }) {
                         return Err(BootstrapAssemblyError::ImplicitRenameOrReparent {
                             spelling: declaration.spelling().to_owned(),
