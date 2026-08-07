@@ -1,6 +1,6 @@
 use crate::bootstrap::{SemaBootstrapAuthority, SourcePlacement};
 
-const SOURCE: &str = "Interface.{1 0 0}\n[]\n{\n  []\n  []\n  []\n  [Domain.[All Health.HealthDomain] HealthDomain.[Body]]\n}\n";
+const SOURCE: &str = "Interface.{1 0 0}\n[]\n{\n  []\n  []\n  []\n  []\n  [Domain.[All Health.HealthDomain] HealthDomain.[Body]]\n}\n";
 
 fn placement() -> SourcePlacement {
     SourcePlacement::new(
@@ -30,7 +30,7 @@ fn distinct_sources_receive_private_stages_without_an_atomic_commit() {
         .authorize(SOURCE, placement())
         .expect("initial private stage");
     authority
-        .authorize("Interface.{1 0 0}\n[]\n{[] [] [] []}", placement())
+        .authorize("Interface.{1 0 0}\n[]\n{[] [] [] [] []}", placement())
         .expect("a distinct source gets its own private stage");
 }
 
@@ -40,7 +40,7 @@ fn admitted_domain_shape_resolves_in_type_applications() {
     authority
         .admit_domain_shape("ScopeOf", 1)
         .expect("authority admits a domain shape before authorization");
-    let source = "Interface.{1 0 0}\n[]\n{[] [] [] [DomainScope.ScopeOf<Domain> Domain.[All]]}";
+    let source = "Interface.{1 0 0}\n[]\n{[] [] [] [] [DomainScope.ScopeOf<Domain> Domain.[All]]}";
     let result = authority
         .authorize(source, placement())
         .expect("authorized source with admitted domain shape constructor");
@@ -51,7 +51,7 @@ fn admitted_domain_shape_resolves_in_type_applications() {
 #[test]
 fn domain_shape_without_admission_is_an_unresolved_reference() {
     let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
-    let source = "Interface.{1 0 0}\n[]\n{[] [] [] [DomainScope.ScopeOf<Domain> Domain.[All]]}";
+    let source = "Interface.{1 0 0}\n[]\n{[] [] [] [] [DomainScope.ScopeOf<Domain> Domain.[All]]}";
     assert!(
         authority.authorize(source, placement()).is_err(),
         "ScopeOf must be admitted before authorization to resolve as a shape"

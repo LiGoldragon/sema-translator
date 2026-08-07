@@ -25,7 +25,7 @@ bootstrap = [
 ]
 
 [dependencies]
-core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "581c833", optional = true }
+core-ethos = { git = "https://github.com/LiGoldragon/core-ethos.git", rev = "aa83187", optional = true }
 name-table = { git = "https://github.com/LiGoldragon/name-table.git", rev = "7dd5db15c16b4246c83d049c759415d3252a7d43", optional = true }
 structural-codec = { git = "https://github.com/LiGoldragon/structural-codec.git", rev = "fd3b3bebfe69", optional = true }
 content-identity = { git = "https://github.com/LiGoldragon/content-identity.git", rev = "df1d25c7cd9e822ae03255e04ede59a00b78480b", optional = true }

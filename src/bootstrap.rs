@@ -455,6 +455,7 @@ impl SeedAuthorityState {
                 input_role: named(BootstrapPriorSlot::InputRole),
                 output_role: named(BootstrapPriorSlot::OutputRole),
                 refusal_role: named(BootstrapPriorSlot::RefusalRole),
+                stream_role: named(BootstrapPriorSlot::StreamRole),
                 string_type: named(BootstrapPriorSlot::StringType),
                 integer_type: named(BootstrapPriorSlot::IntegerType),
                 boolean_type: named(BootstrapPriorSlot::BooleanType),
