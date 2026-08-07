@@ -114,7 +114,7 @@ dependencies = [
 [[package]]
 name = "core-ethos"
 version = "0.30.0"
-source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=cc32c507da45998a18682af939915d192d902b9f#cc32c507da45998a18682af939915d192d902b9f"
+source = "git+https://github.com/LiGoldragon/core-ethos.git?rev=d9cd87095cce#d9cd87095cce966078a741824e66cdd91747e89e"
 dependencies = [
  "content-identity 0.6.0 (git+https://github.com/LiGoldragon/content-identity.git?rev=df1d25c7cd9e822ae03255e04ede59a00b78480b)",
  "name-table",

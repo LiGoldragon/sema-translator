@@ -12,7 +12,7 @@ use core_ethos::bootstrap::{
     BootstrapNamingAuthorityRequest, BootstrapPriorIdentities, BootstrapPriorSlot,
     BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan, BootstrapReader,
     BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder, DeclarationOccurrence,
-    EthosVersion, GeneratedStreamAssignments, IdentityDisposition, IdentitySchema,
+    EthosVersion, IdentityDisposition, IdentitySchema,
     IdentitySchemaCatalog, NamingAssignment, NamingAssignments, PlannedScope,
     PreparedBootstrapDraft, PreparedBootstrapTransaction, TextualMetadataRecord,
     TextualMetadataSnapshot, TextualMetadataTransition, TextualProjectionAddress,
@@ -131,7 +131,6 @@ impl SemaBootstrapAuthority {
         let transaction = reader.seal(
             &sealed_plan,
             &assignments,
-            &GeneratedStreamAssignments::new(Vec::new())?,
             &TextualMetadataTransition::new(catalog.metadata().clone(), allocation.after.clone()),
             &proof,
         )?;
@@ -487,7 +486,6 @@ impl SemaNamingAuthority {
         self.after.as_ref().is_some_and(|after| {
             draft.naming_transition.before() == &self.before
                 && draft.naming_transition.after() == after
-                && draft.generated_streams.is_empty()
                 && draft
                     .identity_dispositions
                     .iter()
