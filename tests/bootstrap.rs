@@ -57,3 +57,62 @@ fn domain_shape_without_admission_is_an_unresolved_reference() {
         "ScopeOf must be admitted before authorization to resolve as a shape"
     );
 }
+
+fn dependency_placement() -> SourcePlacement {
+    SourcePlacement::new(
+        vec!["dep".to_owned(), "domain".to_owned()],
+        vec![
+            "dep".to_owned(),
+            "domain".to_owned(),
+            "domain.schema".to_owned(),
+        ],
+    )
+}
+
+fn consumer_placement() -> SourcePlacement {
+    SourcePlacement::new(
+        vec!["consumer".to_owned()],
+        vec!["consumer".to_owned(), "consumer.schema".to_owned()],
+    )
+}
+
+#[test]
+fn imports_resolve_against_previously_authorized_sources() {
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
+    let dependency = "Interface.{1 0 0}\n[]\n{[] [] [] [] [Domain.[All Craft] DomainScopes.Vector<Domain>]}";
+    authority
+        .authorize(dependency, dependency_placement())
+        .expect("authorize the dependency source first");
+
+    let consumer = "Interface.{1 0 0}\n[dep/domain.[Domain DomainScopes]]\n{[] [] [] [] [Domains.Vector<Domain> Match.[Any Full.DomainScopes]]}";
+    let result = authority
+        .authorize(consumer, consumer_placement())
+        .expect("consumer must resolve imports against the authorized dependency");
+    assert!(result.canonical_source().contains("Domains"));
+    assert!(result.canonical_source().contains("Domain"));
+}
+
+#[test]
+fn imports_fail_without_prior_authorization_of_the_source() {
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
+    let consumer = "Interface.{1 0 0}\n[dep/domain.[Domain]]\n{[] [] [] [] [Domains.Vector<Domain>]}";
+    assert!(
+        authority.authorize(consumer, consumer_placement()).is_err(),
+        "imports must fail when the dependency source was never authorized"
+    );
+}
+
+#[test]
+fn imports_resolve_only_via_authorization_not_caller_assertion() {
+    let mut authority = SemaBootstrapAuthority::new().expect("authority owns its seed allocation");
+    // Admitting a domain shape is not the same as authorizing a source.
+    // The shape resolves at ["builtin"], not at the import module path.
+    authority
+        .admit_domain_shape("Domain", 0)
+        .expect("admit a shape named Domain");
+    let consumer = "Interface.{1 0 0}\n[dep/domain.[Domain]]\n{[] [] [] [] []}";
+    assert!(
+        authority.authorize(consumer, consumer_placement()).is_err(),
+        "admitted domain shapes do not satisfy import module-path resolution"
+    );
+}

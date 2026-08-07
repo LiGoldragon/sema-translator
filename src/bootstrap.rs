@@ -166,6 +166,7 @@ impl SemaBootstrapAuthority {
             &self.assembler,
             &request.placement,
             &self.admitted_domain_shapes,
+            &self.staged,
         )?;
         let planning_reader = self.assembler.bootstrap_reader(
             self.grammar.clone(),
@@ -489,8 +490,10 @@ impl SeedAuthorityState {
         assembler: &SemaTransactionAssembler,
         placement: &SourcePlacement,
         domain_shapes: &[AdmittedDomainShape],
+        staged: &BTreeMap<SourceRequest, StagedBootstrapChange>,
     ) -> Result<BootstrapCatalog, BootstrapAssemblyError> {
-        if domain_shapes.is_empty() {
+        let has_extensions = !domain_shapes.is_empty() || !staged.is_empty();
+        if !has_extensions {
             return assembler
                 .bootstrap_catalog(
                     placement.module_path().to_vec(),
@@ -502,7 +505,17 @@ impl SeedAuthorityState {
                 .map_err(BootstrapAssemblyError::from);
         }
 
-        // Extend metadata with domain shape records.
+        let seed_identities: BTreeSet<EncodedName> = self
+            .metadata
+            .records()
+            .iter()
+            .map(|record| record.encoded_name)
+            .collect();
+
+        // Extend metadata with domain shape records and previously staged
+        // authorization records. Staged types carry their true roles from
+        // their own source (nominal, shape, etc.) — the authority consults
+        // only sources it has actually authorized, never caller assertions.
         let mut records = self.metadata.records().to_vec();
         for shape in domain_shapes {
             records.push(TextualMetadataRecord {
@@ -514,9 +527,16 @@ impl SeedAuthorityState {
                 encoded_name: shape.identity,
             });
         }
+        for stage in staged.values() {
+            for record in stage.metadata.records() {
+                if !seed_identities.contains(&record.encoded_name) {
+                    records.push(record.clone());
+                }
+            }
+        }
         let metadata = TextualMetadataSnapshot::new(records)?;
 
-        // Extend schemas with domain shape roles.
+        // Extend schemas with domain shape roles and staged schema additions.
         let mut schema_entries: Vec<IdentitySchema> = self.schemas.entries().cloned().collect();
         for shape in domain_shapes {
             schema_entries.push(IdentitySchema::new(
@@ -524,9 +544,12 @@ impl SeedAuthorityState {
                 [SchemaRole::Shape { arity: shape.arity }],
             )?);
         }
+        for stage in staged.values() {
+            schema_entries.extend(stage.receipt.schema_additions().entries().cloned());
+        }
         let schemas = IdentitySchemaCatalog::new(schema_entries)?;
 
-        // Extend canonical order with domain shape bytes.
+        // Extend canonical order with domain shape bytes and staged entries.
         let canonical_order = CanonicalIdentityOrder::new(
             self.canonical_order
                 .entries()
@@ -535,7 +558,15 @@ impl SeedAuthorityState {
                     domain_shapes
                         .iter()
                         .map(|shape| (shape.identity, shape.canonical_bytes.clone())),
-                ),
+                )
+                .chain(staged.values().flat_map(|stage| {
+                    stage
+                        .receipt
+                        .canonical_order()
+                        .entries()
+                        .filter(|(identity, _)| !seed_identities.contains(identity))
+                        .map(|(identity, bytes)| (*identity, bytes.to_vec()))
+                })),
         )?;
 
         assembler
