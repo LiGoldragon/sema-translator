@@ -137,6 +137,14 @@ impl SemaBootstrapAuthority {
         Ok(())
     }
 
+    /// Bootstrap prior identities owned by this authority's core seed.
+    ///
+    /// Callers use these identities to construct role-trait mappings for
+    /// the Interface lowering path.
+    pub fn prior_identities(&self) -> &BootstrapPriorIdentities {
+        self.seed.priors.identities()
+    }
+
     /// Plan, mint, seal, and stage one source-plus-placement request.
     ///
     /// Repeating an already realized request returns its exact realized
