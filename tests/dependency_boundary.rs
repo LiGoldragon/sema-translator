@@ -105,6 +105,7 @@ fn public_bootstrap_surface_has_no_identity_or_receipt_constructor() {
         "pub struct BootstrapCatalog",
         "pub struct CanonicalIdentityOrder",
         "pub struct NamingAssignments",
+        "pub struct AdmittedDomainShape",
         "pub fn mint_name",
         "pub fn mint_canonical_bytes",
         "pub fn receipt",

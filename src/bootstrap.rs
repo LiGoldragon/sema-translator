@@ -14,7 +14,8 @@ use core_ethos::bootstrap::{
     BootstrapPriorVocabulary, BootstrapReadError, BootstrapReadPlan, BootstrapReader,
     BootstrapVersionPolicy, BootstrapWriteError, CanonicalIdentityOrder, DeclarationOccurrence,
     EthosVersion, IdentityDisposition, IdentitySchema, IdentitySchemaCatalog, NamingAssignments,
-    PlannedScope, PreparedBootstrapDraft, PreparedBootstrapTransaction, SemaTransactionAssembler,
+    PlannedScope, PreparedBootstrapDraft, PreparedBootstrapTransaction, SchemaRole,
+    SemaTransactionAssembler,
     TextualMetadataRecord, TextualMetadataSnapshot, TextualMetadataTransition,
     TextualProjectionAddress, bootstrap_prior_definitions,
 };
@@ -59,14 +60,31 @@ impl SourcePlacement {
 /// It mints opaque names with the operating system CSPRNG.  It has no API for
 /// accepting caller-selected names, proofs, receipts, canonical bytes, seats,
 /// catalogs, or preassembled transactions.
+///
+/// Domain-specific shape vocabulary (type constructors with a declared arity)
+/// may be admitted before authorization through `admit_domain_shape`. The
+/// authority mints and seals those identities; callers supply only a textual
+/// name and arity.
 pub struct SemaBootstrapAuthority {
     assembler: SemaTransactionAssembler,
     grammar: BootstrapGrammarIdentities,
     seed: SeedAuthorityState,
+    admitted_domain_shapes: Vec<AdmittedDomainShape>,
     used_names: BTreeSet<EncodedName>,
     used_canonical_bytes: BTreeSet<Vec<u8>>,
     staged: BTreeMap<SourceRequest, StagedBootstrapChange>,
     replays: BTreeMap<SourceRequest, AuthorizedBootstrap>,
+}
+
+/// One domain shape constructor admitted into the bootstrap catalog by the
+/// authority. The identity and canonical bytes are authority-minted; callers
+/// supply only the textual name and arity.
+#[derive(Clone)]
+struct AdmittedDomainShape {
+    textual_name: String,
+    identity: EncodedName,
+    canonical_bytes: Vec<u8>,
+    arity: u16,
 }
 
 impl SemaBootstrapAuthority {
@@ -86,11 +104,37 @@ impl SemaBootstrapAuthority {
             assembler,
             grammar,
             seed,
+            admitted_domain_shapes: Vec::new(),
             used_names,
             used_canonical_bytes,
             staged: BTreeMap::new(),
             replays: BTreeMap::new(),
         })
+    }
+
+    /// Admit one domain-specific shape constructor into the bootstrap catalog.
+    ///
+    /// The authority mints an opaque identity and canonical bytes for the
+    /// shape; callers supply only the textual name and arity. This must be
+    /// called before `authorize` so the reader can resolve the shape during
+    /// planning.
+    ///
+    /// Callers cannot select identities, canonical bytes, or schema roles
+    /// beyond the declared arity. The sealed boundary is preserved.
+    pub fn admit_domain_shape(
+        &mut self,
+        textual_name: &str,
+        arity: u16,
+    ) -> Result<(), BootstrapAssemblyError> {
+        let identity = mint_name(&mut self.used_names)?;
+        let canonical_bytes = mint_canonical_bytes(&mut self.used_canonical_bytes)?;
+        self.admitted_domain_shapes.push(AdmittedDomainShape {
+            textual_name: textual_name.to_owned(),
+            identity,
+            canonical_bytes,
+            arity,
+        });
+        Ok(())
     }
 
     /// Plan, mint, seal, and stage one source-plus-placement request.
@@ -110,7 +154,11 @@ impl SemaBootstrapAuthority {
         if let Some(realized) = self.replays.get(&request) {
             return Ok(realized.clone());
         }
-        let catalog = self.seed.catalog_for(&self.assembler, &request.placement)?;
+        let catalog = self.seed.catalog_for(
+            &self.assembler,
+            &request.placement,
+            &self.admitted_domain_shapes,
+        )?;
         let planning_reader = self.assembler.bootstrap_reader(
             self.grammar.clone(),
             catalog.clone(),
@@ -415,9 +463,6 @@ impl SeedAuthorityState {
                 option_shape: named(BootstrapPriorSlot::OptionShape),
                 map_shape: named(BootstrapPriorSlot::MapShape),
                 result_shape: named(BootstrapPriorSlot::ResultShape),
-                stream_nomos: named(BootstrapPriorSlot::Stream),
-                stream_shape: named(BootstrapPriorSlot::Stream),
-                stream_identity_shape: named(BootstrapPriorSlot::StreamIdentityShape),
             },
             &schemas,
             &metadata,
@@ -434,14 +479,63 @@ impl SeedAuthorityState {
         &self,
         assembler: &SemaTransactionAssembler,
         placement: &SourcePlacement,
+        domain_shapes: &[AdmittedDomainShape],
     ) -> Result<BootstrapCatalog, BootstrapAssemblyError> {
+        if domain_shapes.is_empty() {
+            return assembler
+                .bootstrap_catalog(
+                    placement.module_path().to_vec(),
+                    BootstrapCatalogMetadata::new(self.metadata.clone(), self.schemas.clone()),
+                    self.priors.clone(),
+                    BootstrapVersionPolicy::exact(EthosVersion::new(1, 0, 0)),
+                    self.canonical_order.clone(),
+                )
+                .map_err(BootstrapAssemblyError::from);
+        }
+
+        // Extend metadata with domain shape records.
+        let mut records = self.metadata.records().to_vec();
+        for shape in domain_shapes {
+            records.push(TextualMetadataRecord {
+                address: TextualProjectionAddress {
+                    module_path: vec!["builtin".to_owned()],
+                    lexical_owner: None,
+                    textual_name: TextualName::new(&shape.textual_name),
+                },
+                encoded_name: shape.identity,
+            });
+        }
+        let metadata = TextualMetadataSnapshot::new(records)?;
+
+        // Extend schemas with domain shape roles.
+        let mut schema_entries: Vec<IdentitySchema> = self.schemas.entries().cloned().collect();
+        for shape in domain_shapes {
+            schema_entries.push(IdentitySchema::new(
+                shape.identity,
+                [SchemaRole::Shape { arity: shape.arity }],
+            )?);
+        }
+        let schemas = IdentitySchemaCatalog::new(schema_entries)?;
+
+        // Extend canonical order with domain shape bytes.
+        let canonical_order = CanonicalIdentityOrder::new(
+            self.canonical_order
+                .entries()
+                .map(|(identity, bytes)| (*identity, bytes.to_vec()))
+                .chain(
+                    domain_shapes
+                        .iter()
+                        .map(|shape| (shape.identity, shape.canonical_bytes.clone())),
+                ),
+        )?;
+
         assembler
             .bootstrap_catalog(
                 placement.module_path().to_vec(),
-                BootstrapCatalogMetadata::new(self.metadata.clone(), self.schemas.clone()),
+                BootstrapCatalogMetadata::new(metadata, schemas),
                 self.priors.clone(),
                 BootstrapVersionPolicy::exact(EthosVersion::new(1, 0, 0)),
-                self.canonical_order.clone(),
+                canonical_order,
             )
             .map_err(BootstrapAssemblyError::from)
     }
