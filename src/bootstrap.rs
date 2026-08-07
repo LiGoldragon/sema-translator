@@ -505,7 +505,9 @@ impl SeedAuthorityState {
                 .map_err(BootstrapAssemblyError::from);
         }
 
-        let seed_identities: BTreeSet<EncodedName> = self
+        // Track all identities already present to avoid duplicates when
+        // merging domain shapes and staged authorization records.
+        let mut seen_identities: BTreeSet<EncodedName> = self
             .metadata
             .records()
             .iter()
@@ -526,10 +528,11 @@ impl SeedAuthorityState {
                 },
                 encoded_name: shape.identity,
             });
+            seen_identities.insert(shape.identity);
         }
         for stage in staged.values() {
             for record in stage.metadata.records() {
-                if !seed_identities.contains(&record.encoded_name) {
+                if seen_identities.insert(record.encoded_name) {
                     records.push(record.clone());
                 }
             }
@@ -537,37 +540,51 @@ impl SeedAuthorityState {
         let metadata = TextualMetadataSnapshot::new(records)?;
 
         // Extend schemas with domain shape roles and staged schema additions.
+        let mut seen_schemas: BTreeSet<EncodedName> = self
+            .schemas
+            .entries()
+            .map(|schema| *schema.identity())
+            .collect();
         let mut schema_entries: Vec<IdentitySchema> = self.schemas.entries().cloned().collect();
         for shape in domain_shapes {
             schema_entries.push(IdentitySchema::new(
                 shape.identity,
                 [SchemaRole::Shape { arity: shape.arity }],
             )?);
+            seen_schemas.insert(shape.identity);
         }
         for stage in staged.values() {
-            schema_entries.extend(stage.receipt.schema_additions().entries().cloned());
+            for schema in stage.receipt.schema_additions().entries() {
+                if seen_schemas.insert(*schema.identity()) {
+                    schema_entries.push(schema.clone());
+                }
+            }
         }
         let schemas = IdentitySchemaCatalog::new(schema_entries)?;
 
         // Extend canonical order with domain shape bytes and staged entries.
-        let canonical_order = CanonicalIdentityOrder::new(
-            self.canonical_order
-                .entries()
-                .map(|(identity, bytes)| (*identity, bytes.to_vec()))
-                .chain(
-                    domain_shapes
-                        .iter()
-                        .map(|shape| (shape.identity, shape.canonical_bytes.clone())),
-                )
-                .chain(staged.values().flat_map(|stage| {
-                    stage
-                        .receipt
-                        .canonical_order()
-                        .entries()
-                        .filter(|(identity, _)| !seed_identities.contains(identity))
-                        .map(|(identity, bytes)| (*identity, bytes.to_vec()))
-                })),
-        )?;
+        let mut seen_canonical: BTreeSet<EncodedName> = self
+            .canonical_order
+            .entries()
+            .map(|(identity, _)| *identity)
+            .collect();
+        let mut canonical_entries: Vec<(EncodedName, Vec<u8>)> = self
+            .canonical_order
+            .entries()
+            .map(|(identity, bytes)| (*identity, bytes.to_vec()))
+            .collect();
+        for shape in domain_shapes {
+            seen_canonical.insert(shape.identity);
+            canonical_entries.push((shape.identity, shape.canonical_bytes.clone()));
+        }
+        for stage in staged.values() {
+            for (identity, bytes) in stage.receipt.canonical_order().entries() {
+                if seen_canonical.insert(*identity) {
+                    canonical_entries.push((*identity, bytes.to_vec()));
+                }
+            }
+        }
+        let canonical_order = CanonicalIdentityOrder::new(canonical_entries)?;
 
         assembler
             .bootstrap_catalog(
